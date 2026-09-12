@@ -1,7 +1,17 @@
-# Quiet — Distraction Free for YouTube
+<p>
+  <img src="quiettubev1-black.png" alt="QuietTube">
+</p>
 
-Hide the feed, sidebar, Shorts, comments and 35 other things on YouTube.
-**Free forever. No account. No subscription. No daily limit. No tracking.**
+# QuietTube
+
+<p>
+  <strong>Distraction-free YouTube, on your terms.</strong><br>
+  Hide the feed, sidebar, Shorts, comments and 35 other things on YouTube.
+</p>
+
+<p>
+  <em>Free forever. No account. No subscription. No daily limit. No tracking.</em>
+</p>
 
 Built as a replacement for DF Tube, which now limits its free tier to one hour
 a day.
