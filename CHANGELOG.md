@@ -26,3 +26,39 @@ not yet verified against live YouTube — see docs/ROADMAP.md v0.2.
   (`src/lib/dom.js`).
 - Shorts redirect could trap the Back button; it now uses `replace()` plus a
   sessionStorage guard and preserves the `t` timestamp parameter.
+- Ran `/audit-selectors` against live YouTube for the first time (see
+  docs/ROADMAP.md v0.2). Repaired three selectors that had genuinely gone
+  stale:
+  - `view_count`: YouTube split the watch-page metadata line into dedicated
+    `#view-count` / `#date-text` nodes; the old `.view-count` class is gone.
+    The new selector is an id inside a named element, so risk moved high → med.
+  - `like_counts`: the button's text-content class appears to be mid-rollout
+    between `.yt-spec-button-shape-next__button-text-content` (old) and
+    `.ytSpecButtonShapeNextButtonTextContent` (new) — different page loads
+    showed different classes. Both are now in `sel`.
+  - `shorts_search`: Shorts in search results now render as
+    `ytm-shorts-lockup-view-model`, not as a `ytd-video-renderer` with a
+    `/shorts/` href. Risk moved med → low (now a tier-1 element match).
+
+### Known issue (needs follow-up, not fixed this pass)
+- `explore_trending`: YouTube removed "Trending" from the guide entirely and
+  turned "Explore" into an unlinked section heading with no id, class, or
+  other stable attribute — there is no CSS selector left that can isolate it
+  without the "never match on text content" rule getting broken. Hiding it now
+  needs a `kind: 'js'` handler that finds the heading by text and hides its
+  parent `ytd-guide-section-renderer`, which is a bigger change than a
+  selector swap. Left as-is pending that work.
+- `home_chips`, `home_ads`, `mixes`, `search_ads`: could not be verified live
+  either way. A signed-out, watch-history-less browser gets an empty
+  personalized home feed ("Try searching to get started"), so feed-dependent
+  surfaces (chips, in-feed ads, Mix cards) never render regardless of
+  selector correctness, and no ad was served to the automated search session
+  either. Needs a manual spot-check from a real signed-in profile.
+- `notification_bell`: only renders when signed in, same as the `subs` page;
+  the selector could not be exercised, not confirmed broken.
+- Fixed a live-test methodology gap unrelated to any registry change: the
+  channel test URL landed on the channel's About tab (no videos grid) instead
+  of `/videos`, `search_suggestions` was checked without ever typing into the
+  search box, and the watch page's collapsed guide drawer was never opened
+  before checking guide-dependent selectors. All three made several selectors
+  look broken when they were not; see `tests/selectors.spec.js`.

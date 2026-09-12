@@ -123,3 +123,33 @@ test that asserts on `QT` from `page.evaluate` will fail — assert on the
 *effects* instead (the `data-qt-page` stamp, the `#qt-style` element, the
 localStorage cache). `tests/extension.spec.js` asserts the isolation explicitly
 so a future change that leaks into the page fails loudly.
+
+## D14 — Live selector audits need a real account, and some redesigns beat CSS
+**Observed (2026-09, first `/audit-selectors` run):** running `tests/selectors.spec.js`
+against a fresh, signed-out, no-watch-history Chromium profile reports ~37 of
+~50 features as broken. Almost all of that is not stale selectors:
+- A signed-out, history-less session gets an **empty personalized home feed**
+  ("Try searching to get started") and an empty watch-page related sidebar, so
+  every feed/recommendation-shaped feature (`home_chips`, `home_ads`, `mixes`,
+  `grayscale_thumbs` on those surfaces) has nothing to match — correctly.
+- The automated session was **never served an ad**, on any page, in two full
+  runs. `home_ads` / `search_ads` cannot be verified this way at all.
+- `notification_bell` only renders when **signed in** — same constraint as the
+  `subs` page, just not previously called out in `NEEDS_AUTH`.
+- Two class names came back **inconsistently between identical runs**
+  (`like_counts`'s text-content class), which reads as a live A/B rollout
+  between a dashed and a camelCase name rather than noise. Selector fixes
+  under active rollout should add the new class alongside the old one, not
+  replace it — both are "real" depending on which bucket a session lands in.
+**Real finding:** `explore_trending` cannot be expressed as a CSS selector
+any more. YouTube removed "Trending" from the guide outright and turned
+"Explore" into a heading with no id, class, or attribute — only its text
+distinguishes it, and this repo does not do text-content matching in
+selectors (see rule 2, `docs/SPEC.md`). Fixing it for real means a `kind: 'js'`
+handler that finds the heading by text and hides its parent
+`ytd-guide-section-renderer`. Left broken rather than force a wrong fix.
+**Rule:** treat a live audit failure as "needs investigation," not "selector is
+stale," until you've confirmed real content exists on that page for a signed-in
+session. A failing `risk: 'low'`/`'med'` selector on an empty feed is not a
+redesign signal the way the skill's "flag low/med failures" heuristic assumes —
+check for content first.

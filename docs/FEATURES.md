@@ -45,7 +45,7 @@ _Every entry point, not just the shelf._
 | Redirect Shorts → normal player | `shorts_redirect` | shorts | js | low | ✓ | ✓ | ✓ | youtube.com/shorts/ID becomes youtube.com/watch?v=ID. Kills the swipe feed dead while still letting links you were sent actually open. |
 | Shorts shelves | `shorts_shelf` | all | css | low | ✓ | ✓ | ✓ | The horizontal Shorts rows wherever they appear. |
 | Shorts link in the left rail | `shorts_nav` | all | css | med | ✓ | ✓ | ✓ | Removes the entry point from the guide and the mini-guide. |
-| Shorts in search results | `shorts_search` | search | css | med | ✓ | ✓ | ✓ | Search returns videos only. |
+| Shorts in search results | `shorts_search` | search | css | low | ✓ | ✓ | ✓ | Search returns videos only. |
 | Shorts tab on channels | `shorts_channel_tab` | channel | css | **high** | ✓ | · | · | Hides the Shorts tab from channel pages. |
 | Shorts in subscriptions | `shorts_subs` | subs | css | med | ✓ | ✓ | ✓ | Keeps the subs feed to long-form only. |
 
@@ -76,7 +76,7 @@ _Counts, badges, and buy-buttons._
 
 | Toggle | id | Page | Kind | Risk | S | M | C | What it does |
 |---|---|---|---|---|:-:|:-:|:-:|---|
-| View counts | `view_count` | watch | css | **high** | · | · | · | Judge the video, not its popularity. |
+| View counts | `view_count` | watch | css | med | · | · | · | Judge the video, not its popularity. |
 | Like counts | `like_counts` | watch | css | **high** | · | · | · | Keeps the button, hides the number. |
 | Merch, tickets & offers | `merch_shelf` | watch | css | low | ✓ | ✓ | ✓ | Product shelves under the player. |
 | Video description | `description` | watch | css | low | · | · | · | Link farms and sponsor blocks. |
@@ -139,21 +139,21 @@ Every selector the extension uses, for audit purposes.
 | `playlists_sitewide` | low | `ytd-playlist-renderer`<br>`ytd-compact-playlist-renderer`<br>`ytd-playlist-panel-renderer` |
 | `shorts_shelf` | low | `ytd-rich-shelf-renderer[is-shorts]`<br>`ytd-reel-shelf-renderer`<br>`ytm-shorts-lockup-view-model` |
 | `shorts_nav` | med | `ytd-guide-entry-renderer:has(a[title="Shorts"])`<br>`ytd-mini-guide-entry-renderer[aria-label="Shorts"]` |
-| `shorts_search` | med | `ytd-video-renderer:has(a[href^="/shorts/"])`<br>`ytd-reel-shelf-renderer` |
+| `shorts_search` | low | `ytm-shorts-lockup-view-model`<br>`ytd-reel-shelf-renderer`<br>`ytd-video-renderer:has(a[href^="/shorts/"])` |
 | `shorts_channel_tab` | high | `yt-tab-shape[tab-title="Shorts"]`<br>`tp-yt-paper-tab:has(a[href$="/shorts"])` |
 | `shorts_subs` | med | `ytd-browse[page-subtype="subscriptions"] ytd-rich-shelf-renderer[is-shorts]` |
 | `comments_hide` | low | `ytd-comments#comments`<br>`#comments` |
 | `comment_avatars` | med | `ytd-comment-view-model #author-thumbnail`<br>`#author-thumbnail.ytd-comment-view-model` |
 | `live_chat` | low | `ytd-live-chat-frame#chat`<br>`#chat-container` |
-| `view_count` | high | `ytd-watch-metadata #info span.view-count`<br>`#info-container .view-count` |
-| `like_counts` | high | `ytd-watch-metadata like-button-view-model .yt-spec-button-shape-next__button-text-content` |
+| `view_count` | med | `ytd-watch-info-text #view-count`<br>`ytd-watch-metadata #info span.view-count`<br>`#info-container .view-count` |
+| `like_counts` | high | `ytd-watch-metadata like-button-view-model .ytSpecButtonShapeNextButtonTextContent`<br>`ytd-watch-metadata like-button-view-model .yt-spec-button-shape-next__button-text-content` |
 | `merch_shelf` | low | `ytd-merch-shelf-renderer`<br>`ytd-ticket-shelf-renderer`<br>`#offer-module` |
 | `description` | low | `ytd-watch-metadata #description-inner`<br>`#description.ytd-watch-metadata` |
 | `subscribe_button` | med | `ytd-watch-metadata #subscribe-button`<br>`ytd-watch-metadata #sponsor-button` |
 | `guide_rail` | low | `ytd-app #guide`<br>`tp-yt-app-drawer#guide` |
 | `explore_trending` | med | `ytd-guide-entry-renderer:has(a[title="Trending"])`<br>`ytd-guide-entry-renderer:has(a[title="Explore"])` |
 | `notification_bell` | med | `ytd-notification-topbar-button-renderer` |
-| `search_suggestions` | high | `.ytSuggestionComponentSuggestionsContainer`<br>`ytd-searchbox #suggestions` |
+| `search_suggestions` | high | `.ytSearchboxComponentSuggestionsContainer`<br>`.ytSuggestionComponentSuggestionsContainer`<br>`ytd-searchbox #suggestions` |
 | `voice_search` | low | `#voice-search-button` |
 | `search_shelves` | med | `ytd-shelf-renderer`<br>`ytd-universal-watch-card-renderer` |
 | `search_ads` | med | `ytd-search-pyv-renderer`<br>`ytd-promoted-sparkles-text-search-renderer` |

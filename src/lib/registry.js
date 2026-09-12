@@ -169,10 +169,13 @@ const REGISTRY = [
     modes: { study: true, music: true, casual: true },
   },
   {
-    id: 'shorts_search', group: 'shorts', pages: 'search', kind: 'css', risk: 'med', since: 1,
+    id: 'shorts_search', group: 'shorts', pages: 'search', kind: 'css', risk: 'low', since: 1,
     label: 'Shorts in search results',
     desc: 'Search returns videos only.',
-    sel: ['ytd-video-renderer:has(a[href^="/shorts/"])', 'ytd-reel-shelf-renderer'],
+    // 2026-09: Shorts in search results now render as ytm-shorts-lockup-
+    // view-model (a named custom element, tier 1), not as a ytd-video-renderer
+    // with a /shorts/ href — verified live.
+    sel: ['ytm-shorts-lockup-view-model', 'ytd-reel-shelf-renderer', 'ytd-video-renderer:has(a[href^="/shorts/"])'],
     modes: { study: true, music: true, casual: true },
   },
   {
@@ -245,17 +248,23 @@ const REGISTRY = [
 
   // ───────────────────────── SOCIAL PRESSURE ─────────────────────────
   {
-    id: 'view_count', group: 'social', pages: 'watch', kind: 'css', risk: 'high', since: 1,
+    id: 'view_count', group: 'social', pages: 'watch', kind: 'css', risk: 'med', since: 1,
     label: 'View counts',
     desc: 'Judge the video, not its popularity.',
-    sel: ['ytd-watch-metadata #info span.view-count', '#info-container .view-count'],
+    // 2026-09: YouTube split the metadata line into dedicated #view-count /
+    // #date-text nodes (a11y "rolling number" redesign); the old .view-count
+    // class no longer exists. #view-count is an id inside a named custom
+    // element, so this is now tier 2, not tier 3 — verified live.
+    sel: ['ytd-watch-info-text #view-count', 'ytd-watch-metadata #info span.view-count', '#info-container .view-count'],
     modes: { study: false, music: false, casual: false },
   },
   {
     id: 'like_counts', group: 'social', pages: 'watch', kind: 'css', risk: 'high', since: 1,
     label: 'Like counts',
     desc: 'Keeps the button, hides the number.',
-    sel: ['ytd-watch-metadata like-button-view-model .yt-spec-button-shape-next__button-text-content'],
+    // 2026-09: class renamed from the dashed yt-spec-button-shape-next__*
+    // convention to camelCase ytSpecButtonShapeNext* — verified live.
+    sel: ['ytd-watch-metadata like-button-view-model .ytSpecButtonShapeNextButtonTextContent', 'ytd-watch-metadata like-button-view-model .yt-spec-button-shape-next__button-text-content'],
     modes: { study: false, music: false, casual: false },
   },
   {
@@ -306,7 +315,10 @@ const REGISTRY = [
     id: 'search_suggestions', group: 'nav', pages: 'all', kind: 'css', risk: 'high', since: 1,
     label: 'Search autocomplete',
     desc: 'Search for what you came for, not what it suggests.',
-    sel: ['.ytSuggestionComponentSuggestionsContainer', 'ytd-searchbox #suggestions'],
+    // 2026-09: the container class is now ytSearchboxComponent* (was
+    // ytSuggestionComponent*); ytd-searchbox no longer exists at all —
+    // verified live by typing into the search box.
+    sel: ['.ytSearchboxComponentSuggestionsContainer', '.ytSuggestionComponentSuggestionsContainer', 'ytd-searchbox #suggestions'],
     modes: { study: false, music: false, casual: false },
   },
   {

@@ -6,10 +6,19 @@ worker, docs. Behaviour handlers are written but unverified against live
 YouTube.
 
 ## v0.2 — verified
-- [ ] Run `/audit-selectors` against live YouTube; fix every stale selector.
-- [ ] Playwright suite green on home / watch / search / subs / channel / shorts.
+- [x] Run `/audit-selectors` against live YouTube; fix every stale selector
+      that turned out to be genuinely stale (`view_count`, `like_counts`,
+      `shorts_search` — see CHANGELOG). `explore_trending` needs a `kind:'js'`
+      rewrite (no CSS-only selector survives; see CHANGELOG "Known issue").
+      `home_chips` / `home_ads` / `mixes` / `search_ads` / `notification_bell`
+      could not be verified either way in a signed-out, history-less browser
+      and need a manual pass from a real account.
+- [ ] Playwright suite green on home / watch / search / subs / channel / shorts
+      — blocked on the same feed-personalization and sign-in gaps above; the
+      offline suite (60 tests) is green, `npm run test:live` is not and won't
+      fully clear until those items are resolved from a real account.
 - [ ] Record a cold load with network throttling; confirm no feed flash.
-- [ ] Icons (16/32/48/128) — currently missing, the manifest references them.
+- [x] Icons (16/32/48/128) — present in `src/icons/`.
 - [ ] Fix the sidebar-widen layout rule at 1280px and 1920px.
 
 ## v1.0 — store submission

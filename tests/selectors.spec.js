@@ -25,7 +25,7 @@ const PAGES = {
   home:    'https://www.youtube.com/',
   watch:   'https://www.youtube.com/watch?v=aqz-KE-bpKQ',  // Big Buck Bunny, stable public video
   search:  'https://www.youtube.com/results?search_query=lofi',
-  channel: 'https://www.youtube.com/@YouTube',
+  channel: 'https://www.youtube.com/@YouTube/videos',
   subs:    'https://www.youtube.com/feed/subscriptions',   // requires a session
   shorts:  'https://www.youtube.com/shorts/',
 };
@@ -46,6 +46,34 @@ for (const [page, url] of Object.entries(PAGES)) {
         await p.goto(url, { waitUntil: 'domcontentloaded' });
         // YouTube hydrates lazily; give the renderers a moment.
         await p.waitForTimeout(3500);
+
+        // The suggestions container does not exist until the user types —
+        // it is not a page-load element, so simulate the interaction.
+        if (f.id === 'search_suggestions') {
+          const box = p.locator('input[name="search_query"]').first();
+          if (await box.count()) {
+            await box.click();
+            await box.type('a', { delay: 50 });
+            await p.waitForTimeout(1000);
+          }
+        }
+
+        // The watch page starts with the guide drawer collapsed, so guide
+        // entries do not exist in the DOM until it is opened. Open it only
+        // when it is not already populated (other page types render it open
+        // by default, and re-clicking would toggle it shut).
+        if (['shorts_nav', 'explore_trending'].includes(f.id)) {
+          const guideOpen = await p.evaluate(
+            () => document.querySelectorAll('ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer').length > 0
+          );
+          if (!guideOpen) {
+            const guideBtn = p.locator('button[aria-label="Guide"]').first();
+            if (await guideBtn.count()) {
+              await guideBtn.click().catch(() => {});
+              await p.waitForTimeout(1500);
+            }
+          }
+        }
 
         const counts = {};
         for (const sel of f.sel) {
