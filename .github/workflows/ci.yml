@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  offline:
+    name: Offline checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Registry consistency, storage/mode resolution, CSS engine, and a real
+      # unpacked-extension load. No network, so this must always be green.
+      - name: Test
+        run: npm run test
+
+      - name: Release gate
+        run: node tools/check-release.mjs
+
+      - name: Docs match the registry
+        run: |
+          node tools/gen-features.mjs
+          git diff --exit-code docs/FEATURES.md \
+            || (echo "::error::docs/FEATURES.md is stale — run 'npm run gen:features' and commit" && exit 1)
+
+      - name: Every source file parses
+        run: |
+          set -e
+          for f in $(find src -name '*.js'); do node --check "$f"; done
+
+  # tests/selectors.spec.js loads real youtube.com, which is flaky and
+  # rate-limited from CI runners. Run it locally before a release instead:
+  #   npm run test:live

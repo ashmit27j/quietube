@@ -1,0 +1,18 @@
+{
+  "name": "quiet-distraction-free-youtube",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free, open-source distraction-free YouTube extension (Chrome MV3). No build step for the extension itself; devDependencies are for tests only.",
+  "type": "module",
+  "scripts": {
+    "gen:features": "node tools/gen-features.mjs",
+    "gen:icons": "python3 tools/gen-icons.py",
+    "test": "playwright test --project=offline",
+    "test:live": "playwright test --project=live",
+    "check": "npm run test && npm run gen:features && node tools/check-release.mjs",
+    "package": "mkdir -p dist && cd src && zip -qr ../dist/quiet-$npm_package_version.zip . -x '.*'"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}

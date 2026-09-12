@@ -1,0 +1,39 @@
+/* Styles for elements THIS EXTENSION adds to youtube.com.
+   Never put YouTube-hiding rules here — those are generated from the
+   registry at runtime by css-engine.js. This file is static and is listed
+   in manifest.json's content_scripts.css, so it is applied before first
+   paint with no JS involved. */
+
+#qt-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 55vh;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+#qt-placeholder .qt-ph-text {
+  margin: 0;
+  max-width: 34ch;
+  font: 400 22px/1.5 "Roboto", system-ui, sans-serif;
+  color: var(--yt-spec-text-secondary, #909090);
+  letter-spacing: 0.01em;
+}
+
+.qt-reveal-btn {
+  display: block;
+  margin: 16px 0 24px;
+  padding: 9px 16px;
+  border: 1px solid var(--yt-spec-10-percent-layer, #ffffff1a);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--yt-spec-text-secondary, #909090);
+  font: 500 14px/1 "Roboto", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.qt-reveal-btn:hover {
+  background: var(--yt-spec-10-percent-layer, #ffffff1a);
+  color: var(--yt-spec-text-primary, #f1f1f1);
+}
