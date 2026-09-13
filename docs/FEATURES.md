@@ -1,6 +1,6 @@
 # Feature reference
 
-Generated from `src/lib/registry.js` by `tools/gen-features.mjs`.
+Generated from `src/packs/youtube.js` by `tools/gen-features.mjs`.
 **Do not edit by hand** — edit the registry and regenerate.
 
 41 toggles across 9 groups.
@@ -89,7 +89,7 @@ _Left rail, notifications, search extras._
 | Toggle | id | Page | Kind | Risk | S | M | C | What it does |
 |---|---|---|---|---|:-:|:-:|:-:|---|
 | Left sidebar | `guide_rail` | all | css | low | ✓ | · | · | The whole navigation rail, including Explore and Trending. |
-| Explore & Trending entries | `explore_trending` | all | css | med | ✓ | ✓ | ✓ | Keeps the rail but drops the discovery entries. |
+| Explore & Trending entries | `explore_trending` | all | js | med | ✓ | ✓ | ✓ | Keeps the rail but drops the discovery entries. |
 | Notification bell | `notification_bell` | all | css | med | ✓ | ✓ | ✓ | Removes the red-dot pull. |
 | Search autocomplete | `search_suggestions` | all | css | **high** | · | · | · | Search for what you came for, not what it suggests. |
 | Voice search button | `voice_search` | all | css | low | · | · | · | Minor, but it is one less thing. |
@@ -115,7 +115,7 @@ _Blunt-instrument options that defeat thumbnail bait._
 
 ## Modes
 
-- **Off** — Extension does nothing. Normal YouTube.
+- **Off** — Extension does nothing on this site.
 - **Casual** — Kills the worst of it. Recommendations gone, comments collapsed.
 - **Music** — Playlists, mixes and related tracks stay. Visual noise goes.
 - **Study** — Search-and-watch only. Everything else is gone.
@@ -151,12 +151,11 @@ Every selector the extension uses, for audit purposes.
 | `description` | low | `ytd-watch-metadata #description-inner`<br>`#description.ytd-watch-metadata` |
 | `subscribe_button` | med | `ytd-watch-metadata #subscribe-button`<br>`ytd-watch-metadata #sponsor-button` |
 | `guide_rail` | low | `ytd-app #guide`<br>`tp-yt-app-drawer#guide` |
-| `explore_trending` | med | `ytd-guide-entry-renderer:has(a[title="Trending"])`<br>`ytd-guide-entry-renderer:has(a[title="Explore"])` |
 | `notification_bell` | med | `ytd-notification-topbar-button-renderer` |
 | `search_suggestions` | high | `.ytSearchboxComponentSuggestionsContainer`<br>`.ytSuggestionComponentSuggestionsContainer`<br>`ytd-searchbox #suggestions` |
 | `voice_search` | low | `#voice-search-button` |
 | `search_shelves` | med | `ytd-shelf-renderer`<br>`ytd-universal-watch-card-renderer` |
 | `search_ads` | med | `ytd-search-pyv-renderer`<br>`ytd-promoted-sparkles-text-search-renderer` |
-| `grayscale_thumbs` | low | `ytd-thumbnail img`<br>`yt-image img` |
-| `hide_thumbs` | low | `ytd-thumbnail`<br>`ytd-playlist-thumbnail` |
+| `grayscale_thumbs` | low | `ytd-thumbnail img`<br>`yt-thumbnail-view-model img`<br>`yt-image img` |
+| `hide_thumbs` | low | `ytd-thumbnail`<br>`yt-thumbnail-view-model`<br>`ytd-playlist-thumbnail` |
 | `dim_ui` | low | `#masthead-container` |

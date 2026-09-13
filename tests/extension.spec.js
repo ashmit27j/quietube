@@ -31,7 +31,7 @@ let ctx;
 let userDataDir;
 
 test.beforeAll(async () => {
-  userDataDir = mkdtempSync(join(tmpdir(), 'qt-profile-'));
+  userDataDir = mkdtempSync(join(tmpdir(), 'qs-profile-'));
   ctx = await chromium.launchPersistentContext(userDataDir, {
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
     channel: process.env.PLAYWRIGHT_CHROMIUM_PATH ? undefined : 'chromium',
@@ -63,25 +63,25 @@ test('content scripts run, and stay invisible to the page', async () => {
   await page.waitForTimeout(800);
 
   // Content scripts live in an ISOLATED WORLD, so page.evaluate (which runs in
-  // the page's main world) cannot see globalThis.QT. That is the correct and
+  // the page's main world) cannot see globalThis.QS. That is the correct and
   // desirable behaviour — YouTube's own scripts cannot read or tamper with our
   // state — so we assert the isolation holds, and prove the scripts ran by
   // their effects instead.
-  const leaked = await page.evaluate(() => typeof globalThis.QT);
-  expect(leaked, 'QT must not be reachable from the page main world').toBe('undefined');
+  const leaked = await page.evaluate(() => typeof globalThis.QS);
+  expect(leaked, 'QS must not be reachable from the page main world').toBe('undefined');
 
   // Effects visible across the world boundary: the stamp, the stylesheet, and
   // the shared localStorage cache. All three require every content script in
   // the load order to have executed successfully.
   const proof = await page.evaluate(() => ({
-    stamp: document.documentElement.getAttribute('data-qt-page'),
-    styleEl: !!document.getElementById('qt-style'),
-    cache: (() => { try { return !!localStorage.getItem('qt:flags:v1'); } catch { return false; } })(),
+    stamp: document.documentElement.getAttribute('data-qs-page'),
+    styleEl: !!document.getElementById('qs-style'),
+    cache: (() => { try { return !!localStorage.getItem('qs:flags:v1'); } catch { return false; } })(),
   }));
 
-  expect(proof.stamp, 'main.js did not run').toBe('home');
-  expect(proof.styleEl, 'css-engine.js did not run').toBe(true);
-  expect(proof.cache, 'storage.js / main.js did not complete the reconcile').toBe(true);
+  expect(proof.stamp, 'core/main.js did not run').toBe('home');
+  expect(proof.styleEl, 'core/engine.js did not run').toBe(true);
+  expect(proof.cache, 'core/storage.js / core/main.js did not complete the reconcile').toBe(true);
   await page.close();
 });
 
@@ -90,8 +90,8 @@ test('the page is stamped with its type and a stylesheet is injected', async () 
   await page.goto('https://www.youtube.com/');
   await page.waitForTimeout(800);
 
-  expect(await page.getAttribute('html', 'data-qt-page')).toBe('home');
-  const css = await page.evaluate(() => document.getElementById('qt-style')?.textContent ?? null);
+  expect(await page.getAttribute('html', 'data-qs-page')).toBe('home');
+  const css = await page.evaluate(() => document.getElementById('qs-style')?.textContent ?? null);
   expect(css, 'no stylesheet element was injected').not.toBeNull();
   await page.close();
 });
@@ -114,7 +114,7 @@ test('the flags cache is written for the next cold load', async () => {
   await page.waitForTimeout(800);
 
   const cached = await page.evaluate(() => {
-    try { return JSON.parse(localStorage.getItem('qt:flags:v1')); } catch { return null; }
+    try { return JSON.parse(localStorage.getItem('qs:flags:v1')); } catch { return null; }
   });
   expect(cached, 'without this cache every cold load flashes the feed').not.toBeNull();
   expect(cached.home_feed).toBe(true);
@@ -126,7 +126,7 @@ test('no console errors from our code', async () => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => {
-    if (m.type() === 'error' && /quiet|qt-|registry|behaviour/i.test(m.text())) errors.push(m.text());
+    if (m.type() === 'error' && /quietsurf|qs-|registry|behaviour/i.test(m.text())) errors.push(m.text());
   });
   await page.goto('https://www.youtube.com/');
   await page.waitForTimeout(1200);

@@ -1,29 +1,35 @@
 /**
- * Options page. Every control here is GENERATED from src/lib/registry.js —
- * adding a feature to the registry makes it appear here automatically, with
- * no edit to this file. That is the point of the registry; keep it that way.
+ * Options page. Every control here is GENERATED from the active pack's
+ * registry — adding a feature to a pack makes it appear here automatically,
+ * with no edit to this file. That is the point of the registry; keep it that way.
+ *
+ * Single-pack for now (see docs/DECISIONS.md): grouped-by-site rendering
+ * across multiple packs is step 6, not this file.
  */
 (async function () {
-  const QT = globalThis.QT;
-  let cfg = await QT.storage.load();
+  const QS = globalThis.QS;
+  const pack = QS.pack;
+  const MODES = ['off', ...Object.keys(pack.modes), 'custom'];
+  const MODE_META = { off: QS.storage.OFF_META, ...pack.modes, custom: QS.storage.CUSTOM_META };
+  let cfg = await QS.storage.load();
 
   const $ = (id) => document.getElementById(id);
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   // ── modes ───────────────────────────────────────────────────────────────
   function renderModes() {
-    const active = QT.storage.activeMode(cfg);
+    const active = QS.storage.activeMode(cfg);
     $('modes').replaceChildren(
-      ...QT.MODES.map((m) => {
+      ...MODES.map((m) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.role = 'radio';
-        b.textContent = QT.MODE_META[m].label;
-        b.title = QT.MODE_META[m].blurb;
+        b.textContent = MODE_META[m].label;
+        b.title = MODE_META[m].blurb;
         b.setAttribute('aria-checked', String(m === active));
         b.onclick = async () => {
           cfg.mode = m;
-          await QT.storage.save({ mode: m });
+          await QS.storage.save({ mode: m });
           renderAll();
         };
         return b;
@@ -37,18 +43,18 @@
 
   $('clear-overrides').onclick = async () => {
     cfg.overrides = {};
-    await QT.storage.save({ overrides: {} });
+    await QS.storage.save({ overrides: {} });
     renderAll();
   };
 
   // ── feature toggles ─────────────────────────────────────────────────────
   function renderFeatures() {
-    const { flags } = QT.storage.resolve(cfg);
+    const { flags } = QS.storage.resolve(cfg);
     const host = $('features');
     host.replaceChildren();
 
-    for (const g of QT.GROUPS) {
-      const items = QT.REGISTRY.filter((f) => f.group === g.id);
+    for (const g of pack.groups) {
+      const items = pack.features.filter((f) => f.group === g.id);
       if (!items.length) continue;
 
       const card = document.createElement('section');
@@ -71,7 +77,7 @@
         input.onchange = async () => {
           cfg.overrides = cfg.overrides || {};
           cfg.overrides[f.id] = input.checked;
-          await QT.storage.save({ overrides: cfg.overrides });
+          await QS.storage.save({ overrides: cfg.overrides });
           renderAll();
         };
         sw.append(input, document.createElement('span'));
@@ -148,10 +154,10 @@
       to.onchange = () => { rule.to = to.value; persistSchedule(); };
 
       const sel = document.createElement('select');
-      QT.MODES.forEach((m) => {
+      MODES.forEach((m) => {
         const o = document.createElement('option');
         o.value = m;
-        o.textContent = QT.MODE_META[m].label;
+        o.textContent = MODE_META[m].label;
         o.selected = rule.mode === m;
         sel.append(o);
       });
@@ -168,7 +174,7 @@
   }
 
   async function persistSchedule() {
-    await QT.storage.save({ schedule: cfg.schedule });
+    await QS.storage.save({ schedule: cfg.schedule });
     renderModes();
   }
 
@@ -201,8 +207,8 @@
       const text = await inp.files[0].text();
       try {
         const incoming = JSON.parse(text);
-        await QT.storage.save(incoming);
-        cfg = await QT.storage.load();
+        await QS.storage.save(incoming);
+        cfg = await QS.storage.load();
         renderAll();
       } catch {
         alert('That file is not valid Quiet settings.');
@@ -214,8 +220,8 @@
   $('reset').onclick = async () => {
     if (!confirm('Reset every setting to defaults?')) return;
     await (chrome.storage.sync || chrome.storage.local).clear();
-    await QT.storage.save(QT.storage.DEFAULTS);
-    cfg = await QT.storage.load();
+    await QS.storage.save(QS.storage.DEFAULTS);
+    cfg = await QS.storage.load();
     renderAll();
   };
 

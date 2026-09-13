@@ -34,7 +34,7 @@ npm run check       # the above plus the release gate
 npm run test:live   # loads real youtube.com to verify selectors — run before a release
 ```
 
-**offline** (60 tests, ~10s)
+**offline** (~10s)
 
 | File | What it proves |
 |---|---|
@@ -77,8 +77,9 @@ node tools/gen-features.mjs && git diff --exit-code docs/FEATURES.md
 
 - **Selector accuracy against real YouTube.** The offline suite proves the
   engine applies the selectors correctly; it cannot prove the selectors are the
-  right ones. `npm run test:live` is the only thing that does, and it has never
-  been run — this is the top item in `docs/ROADMAP.md` v0.2.
+  right ones. `npm run test:live` is the only thing that does — see
+  `docs/DECISIONS.md` D14 for the first run's findings and the `verified`
+  registry field it led to.
 - The behaviour handlers are only covered indirectly. `forceAutoplayOff` and
   `disableAmbient` depend on player internals (tier-3 selectors) and can only be
   verified by hand on a real watch page.

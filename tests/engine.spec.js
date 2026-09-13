@@ -1,22 +1,22 @@
 /**
- * CSS engine tests — offline, no YouTube required.
+ * CSS engine tests — offline, no network required. Parameterised over every
+ * pack (not duplicated per pack) so step 4's Reddit pack gets this coverage
+ * for free.
  *
- * Builds a synthetic DOM containing one element per registry selector, runs the
- * REAL registry + css-engine against it, and asserts each target is hidden and
- * that page scoping keeps rules off the wrong page types.
+ * Builds a synthetic DOM containing one element per registry selector, runs
+ * the REAL pack + core/engine.js against it, and asserts each target is
+ * hidden and that page scoping keeps rules off the wrong page types.
  *
- * This tests OUR engine, not YouTube's markup. Selector accuracy against the
- * live site is tests/selectors.spec.js, which needs network and a browser that
- * can reach youtube.com.
+ * This tests OUR engine, not a site's live markup. Selector accuracy against
+ * the real site is tests/selectors.spec.js, which needs network.
  */
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const registrySrc = readFileSync(new URL('../src/lib/registry.js', import.meta.url), 'utf8');
-const engineSrc = readFileSync(new URL('../src/content/css-engine.js', import.meta.url), 'utf8');
+// Add a pack id here when a new one ships (step 4 adds 'reddit').
+const PACK_IDS = ['youtube'];
 
-new Function(registrySrc)();
-const QT = globalThis.QT;
+const engineSrc = readFileSync(new URL('../src/core/engine.js', import.meta.url), 'utf8');
 
 /**
  * Build DOM for a selector like `ytd-browse[page-subtype="home"] ytd-rich-grid-renderer`
@@ -60,99 +60,124 @@ function fixtureFor(selector) {
 }
 
 /**
- * Serve a blank page from the real youtube.com origin, fulfilled locally by
+ * Serve a blank page from the real target origin, fulfilled locally by
  * Playwright — no network is used, and no request escapes the sandbox. This is
  * required because `about:blank` has no localStorage, and the engine's
  * synchronous no-flash path reads localStorage on the page origin.
  */
-async function serveOrigin(page) {
+async function serveOrigin(page, origin) {
   await page.route('**/*', (route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html><head></head><body></body></html>' })
   );
-  await page.goto('https://www.youtube.com/');
+  await page.goto(origin);
 }
 
-async function boot(page, { pageType, flags }) {
-  await serveOrigin(page);
-  await page.evaluate((t) => document.documentElement.setAttribute('data-qt-page', t), pageType);
-  await page.addScriptTag({ content: registrySrc });
+async function boot(page, { origin, packSrc, pageType, flags }) {
+  await serveOrigin(page, origin);
+  await page.evaluate((t) => document.documentElement.setAttribute('data-qs-page', t), pageType);
+  await page.addScriptTag({ content: packSrc });
   await page.evaluate((f) => {
-    try { localStorage.setItem('qt:flags:v1', JSON.stringify(f)); } catch {}
+    try { localStorage.setItem('qs:flags:v1', JSON.stringify(f)); } catch {}
   }, flags);
   await page.addScriptTag({ content: engineSrc });
 }
 
-const allOn = () => Object.fromEntries(QT.REGISTRY.map((f) => [f.id, true]));
-const allOff = () => Object.fromEntries(QT.REGISTRY.map((f) => [f.id, false]));
+for (const id of PACK_IDS) {
+  const packSrc = readFileSync(new URL(`../src/packs/${id}.js`, import.meta.url), 'utf8');
+  new Function(packSrc)();
+  const pack = globalThis.QS.pack;
+  const origin = pack.hosts[0].replace(/^\*:\/\/\*\./, 'https://www.').replace(/\/\*$/, '/');
 
-test.describe('css engine', () => {
-  // `style: true` features change how something looks rather than hiding it,
-  // so they are asserted separately below.
-  const hideable = QT.cssFeatures.filter((f) => f.sel?.length && !f.style);
+  const allOn = () => Object.fromEntries(pack.features.map((f) => [f.id, true]));
+  const allOff = () => Object.fromEntries(pack.features.map((f) => [f.id, false]));
+  const somePage = Object.keys(pack.pages)[0];
 
-  for (const f of hideable) {
-    test(`hides ${f.id} when on`, async ({ page }) => {
-      const pageType = f.pages === 'all' ? 'watch' : f.pages;
-      await boot(page, { pageType, flags: allOn() });
+  test.describe(`css engine — pack: ${id}`, () => {
+    // `style: true` features change how something looks rather than hiding it,
+    // so they are asserted separately below.
+    const hideable = pack.features.filter((f) => (f.kind === 'css' || f.kind === 'both') && f.sel?.length && !f.style);
 
-      const sel = f.sel[0];
-      const html = fixtureFor(sel);
-      test.skip(!html, `builder cannot construct a fixture for "${sel}"`);
+    for (const f of hideable) {
+      test(`hides ${f.id} when on`, async ({ page }) => {
+        const pageType = f.pages === 'all' ? somePage : f.pages;
+        await boot(page, { origin, packSrc, pageType, flags: allOn() });
 
-      await page.evaluate((h) => { document.body.insertAdjacentHTML('beforeend', h); }, html);
+        const sel = f.sel[0];
+        const html = fixtureFor(sel);
+        test.skip(!html, `builder cannot construct a fixture for "${sel}"`);
 
-      const hidden = await page.evaluate((s) => {
-        const el = document.querySelector(s);
-        if (!el) return 'fixture did not match its own selector';
-        return getComputedStyle(el).display === 'none' ? true : getComputedStyle(el).display;
-      }, sel);
+        await page.evaluate((h) => { document.body.insertAdjacentHTML('beforeend', h); }, html);
 
-      expect(hidden, `${f.id}: first selector "${sel}" did not hide the element`).toBe(true);
+        const hidden = await page.evaluate((s) => {
+          const el = document.querySelector(s);
+          if (!el) return 'fixture did not match its own selector';
+          return getComputedStyle(el).display === 'none' ? true : getComputedStyle(el).display;
+        }, sel);
+
+        expect(hidden, `${f.id}: first selector "${sel}" did not hide the element`).toBe(true);
+      });
+    }
+
+    test('hides nothing when every flag is off', async ({ page }) => {
+      await boot(page, { origin, packSrc, pageType: somePage, flags: allOff() });
+      const css = await page.evaluate(() => document.getElementById('qs-style')?.textContent ?? null);
+      expect(css, 'a style element should still exist').not.toBeNull();
+      expect(css.trim(), 'all-off must generate an empty stylesheet').toBe('');
     });
-  }
 
-  test('hides nothing when every flag is off', async ({ page }) => {
-    await boot(page, { pageType: 'watch', flags: allOff() });
-    const css = await page.evaluate(() => document.getElementById('qt-style')?.textContent ?? null);
-    expect(css, 'a style element should still exist').not.toBeNull();
-    expect(css.trim(), 'all-off must generate an empty stylesheet').toBe('');
-  });
+    test('page scoping keeps one page type\'s rules off another', async ({ page }) => {
+      const scoped = pack.features.find((f) => f.pages !== 'all' && f.sel?.length);
+      test.skip(!scoped, `pack ${id} has no page-scoped (non-'all') selector feature to check`);
+      const otherPage = Object.keys(pack.pages).find((p) => p !== scoped.pages) || 'other';
 
-  test('page scoping keeps home rules off the watch page', async ({ page }) => {
-    const homeOnly = QT.cssFeatures.find((f) => f.pages === 'home' && f.sel?.length);
-    await boot(page, { pageType: 'watch', flags: allOn() });
-    const html = fixtureFor(homeOnly.sel[0]);
-    await page.evaluate((h) => document.body.insertAdjacentHTML('beforeend', h), html);
-    const display = await page.evaluate(
-      (s) => getComputedStyle(document.querySelector(s)).display,
-      homeOnly.sel[0]
-    );
-    expect(display, `${homeOnly.id} is scoped to home but fired on watch`).not.toBe('none');
-  });
-
-  test('re-applying with the same flags does not churn the stylesheet', async ({ page }) => {
-    await boot(page, { pageType: 'home', flags: allOn() });
-    const same = await page.evaluate(() => {
-      const before = document.getElementById('qt-style').textContent;
-      globalThis.QT.css.apply(globalThis.QT.css.readCache());
-      return before === document.getElementById('qt-style').textContent;
+      await boot(page, { origin, packSrc, pageType: otherPage, flags: allOn() });
+      const html = fixtureFor(scoped.sel[0]);
+      await page.evaluate((h) => document.body.insertAdjacentHTML('beforeend', h), html);
+      const display = await page.evaluate(
+        (s) => getComputedStyle(document.querySelector(s)).display,
+        scoped.sel[0]
+      );
+      expect(display, `${scoped.id} is scoped to '${scoped.pages}' but fired on '${otherPage}'`).not.toBe('none');
     });
-    expect(same).toBe(true);
-  });
 
-  test('survives a corrupt flags cache', async ({ page }) => {
-    await serveOrigin(page);
-    await page.addScriptTag({ content: registrySrc });
-    await page.evaluate(() => localStorage.setItem('qt:flags:v1', '{not json'));
-    await page.addScriptTag({ content: engineSrc });
-    const ok = await page.evaluate(() => globalThis.QT.css.readCache() === null);
-    expect(ok, 'a corrupt cache must read as null, not throw').toBe(true);
-  });
+    test('re-applying with the same flags does not churn the stylesheet', async ({ page }) => {
+      await boot(page, { origin, packSrc, pageType: somePage, flags: allOn() });
+      const same = await page.evaluate(() => {
+        const before = document.getElementById('qs-style').textContent;
+        globalThis.QS.css.apply(globalThis.QS.css.readCache());
+        return before === document.getElementById('qs-style').textContent;
+      });
+      expect(same).toBe(true);
+    });
 
-  test('grayscale applies a filter rather than hiding', async ({ page }) => {
-    await boot(page, { pageType: 'home', flags: { ...allOff(), grayscale_thumbs: true } });
-    const css = await page.evaluate(() => document.getElementById('qt-style').textContent);
-    expect(css).toContain('grayscale(1)');
-    expect(css).not.toContain('display: none');
+    test('survives a corrupt flags cache', async ({ page }) => {
+      await serveOrigin(page, origin);
+      await page.addScriptTag({ content: packSrc });
+      await page.evaluate(() => localStorage.setItem('qs:flags:v1', '{not json'));
+      await page.addScriptTag({ content: engineSrc });
+      const ok = await page.evaluate(() => globalThis.QS.css.readCache() === null);
+      expect(ok, 'a corrupt cache must read as null, not throw').toBe(true);
+    });
+
+    test('style:true features never fall through to the generic hide rule', async ({ page }) => {
+      const styleFeatures = pack.features.filter((f) => f.style);
+      test.skip(!styleFeatures.length, `pack ${id} declares no style:true features`);
+
+      const flags = { ...allOff() };
+      for (const f of styleFeatures) flags[f.id] = true;
+      await boot(page, { origin, packSrc, pageType: somePage, flags });
+
+      const css = await page.evaluate(() => document.getElementById('qs-style')?.textContent ?? '');
+      expect(
+        css.length,
+        `turning on ${styleFeatures.map((f) => f.id).join(', ')} produced no CSS — buildExtraCss may be missing a case`
+      ).toBeGreaterThan(0);
+      for (const f of styleFeatures) {
+        expect(
+          css,
+          `${f.id} is style:true but got display:none from the generic hide loop (D12)`
+        ).not.toMatch(new RegExp(`/\\*\\s*${f.id}\\s*\\*/[\\s\\S]*?display:\\s*none`));
+      }
+    });
   });
-});
+}

@@ -22,8 +22,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-new Function(readFileSync(new URL('../src/lib/registry.js', import.meta.url), 'utf8'))();
-const { REGISTRY } = globalThis.QT;
+new Function(readFileSync(new URL('../src/packs/youtube.js', import.meta.url), 'utf8'))();
+const { features: REGISTRY } = globalThis.QS.pack;
 
 const PAGES = {
   home:    'https://www.youtube.com/',

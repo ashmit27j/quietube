@@ -7,31 +7,30 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-new Function(readFileSync(new URL('../src/lib/registry.js', import.meta.url), 'utf8'))();
-
 // storage.js calls chrome.storage at module scope only inside functions, but
 // `area()` is evaluated lazily — stub just enough for it to load.
 globalThis.chrome = { storage: { sync: { get: async () => ({}), set: async () => {} } } };
-new Function(readFileSync(new URL('../src/lib/storage.js', import.meta.url), 'utf8'))();
+new Function(readFileSync(new URL('../src/core/storage.js', import.meta.url), 'utf8'))();
+new Function(readFileSync(new URL('../src/packs/youtube.js', import.meta.url), 'utf8'))();
 
-const QT = globalThis.QT;
-const base = () => structuredClone(QT.storage.DEFAULTS);
+const QS = globalThis.QS;
+const base = () => structuredClone(QS.storage.DEFAULTS);
 
 test('off mode hides nothing', () => {
   const cfg = { ...base(), mode: 'off' };
-  const { flags } = QT.storage.resolve(cfg);
+  const { flags } = QS.storage.resolve(cfg);
   expect(Object.values(flags).some(Boolean)).toBe(false);
 });
 
 test('study is stricter than casual', () => {
   const count = (mode) =>
-    Object.values(QT.storage.resolve({ ...base(), mode }).flags).filter(Boolean).length;
+    Object.values(QS.storage.resolve({ ...base(), mode }).flags).filter(Boolean).length;
   expect(count('study')).toBeGreaterThan(count('casual'));
 });
 
 test('overrides beat the mode in both directions', () => {
   const cfg = { ...base(), mode: 'study', overrides: { home_feed: false, view_count: true } };
-  const { flags } = QT.storage.resolve(cfg);
+  const { flags } = QS.storage.resolve(cfg);
   expect(flags.home_feed, 'override should turn a mode-on feature off').toBe(false);
   expect(flags.view_count, 'override should turn a mode-off feature on').toBe(true);
   expect(flags.watch_sidebar, 'untouched features keep the mode default').toBe(true);
@@ -40,9 +39,9 @@ test('overrides beat the mode in both directions', () => {
 test('peek reveals everything and only while it lasts', () => {
   const now = Date.now();
   const cfg = { ...base(), mode: 'study', peekUntil: now + 10_000 };
-  expect(Object.values(QT.storage.resolve(cfg, now).flags).some(Boolean)).toBe(false);
+  expect(Object.values(QS.storage.resolve(cfg, now).flags).some(Boolean)).toBe(false);
   expect(
-    Object.values(QT.storage.resolve(cfg, now + 20_000).flags).some(Boolean),
+    Object.values(QS.storage.resolve(cfg, now + 20_000).flags).some(Boolean),
     'an expired peek must stop revealing'
   ).toBe(true);
 });
@@ -50,12 +49,12 @@ test('peek reveals everything and only while it lasts', () => {
 test('peek beats an override that is explicitly on', () => {
   const now = Date.now();
   const cfg = { ...base(), mode: 'casual', overrides: { comments_hide: true }, peekUntil: now + 5000 };
-  expect(QT.storage.resolve(cfg, now).flags.comments_hide).toBe(false);
+  expect(QS.storage.resolve(cfg, now).flags.comments_hide).toBe(false);
 });
 
 test('custom mode starts from casual and applies the custom set', () => {
   const cfg = { ...base(), mode: 'custom', custom: { view_count: true, home_feed: false } };
-  const { flags } = QT.storage.resolve(cfg);
+  const { flags } = QS.storage.resolve(cfg);
   expect(flags.view_count).toBe(true);
   expect(flags.home_feed).toBe(false);
   expect(flags.watch_sidebar, 'unspecified keys fall back to the casual baseline').toBe(true);
@@ -74,9 +73,9 @@ test.describe('schedule', () => {
 
   test('a matching weekday window wins over the manual mode', () => {
     const cfg = withRule({ days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00', mode: 'study' });
-    expect(QT.storage.activeMode(cfg, monday10)).toBe('study');
-    expect(QT.storage.activeMode(cfg, monday20)).toBe('casual');
-    expect(QT.storage.activeMode(cfg, sunday10)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('study');
+    expect(QS.storage.activeMode(cfg, monday20)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, sunday10)).toBe('casual');
   });
 
   test('a window that crosses midnight still matches', () => {
@@ -84,21 +83,21 @@ test.describe('schedule', () => {
     const monday23 = new Date(2026, 8, 14, 23, 0).getTime();
     const monday2am = new Date(2026, 8, 14, 2, 0).getTime();
     const monday12 = new Date(2026, 8, 14, 12, 0).getTime();
-    expect(QT.storage.activeMode(cfg, monday23)).toBe('study');
-    expect(QT.storage.activeMode(cfg, monday2am)).toBe('study');
-    expect(QT.storage.activeMode(cfg, monday12)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, monday23)).toBe('study');
+    expect(QS.storage.activeMode(cfg, monday2am)).toBe('study');
+    expect(QS.storage.activeMode(cfg, monday12)).toBe('casual');
   });
 
   test('a disabled schedule is ignored', () => {
     const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'study' });
     cfg.schedule.enabled = false;
-    expect(QT.storage.activeMode(cfg, monday10)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('casual');
   });
 
   test('the boundary is inclusive at the start, exclusive at the end', () => {
     const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'study' });
-    expect(QT.storage.activeMode(cfg, new Date(2026, 8, 14, 9, 0).getTime())).toBe('study');
-    expect(QT.storage.activeMode(cfg, new Date(2026, 8, 14, 17, 0).getTime())).toBe('casual');
+    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 9, 0).getTime())).toBe('study');
+    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 17, 0).getTime())).toBe('casual');
   });
 
   test('the first matching rule wins', () => {
@@ -113,11 +112,11 @@ test.describe('schedule', () => {
         ],
       },
     };
-    expect(QT.storage.activeMode(cfg, monday10)).toBe('study');
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('study');
   });
 });
 
 test('migrate stamps a schema on legacy configs', () => {
-  const flags = QT.storage.resolve({ ...base(), schema: undefined, mode: 'casual' });
+  const flags = QS.storage.resolve({ ...base(), schema: undefined, mode: 'casual' });
   expect(flags.mode).toBe('casual');
 });

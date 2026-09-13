@@ -1,27 +1,34 @@
 /**
- * Regenerates docs/FEATURES.md from src/lib/registry.js.
+ * Regenerates docs/FEATURES.md from the YouTube pack's registry.
  * Run: node tools/gen-features.mjs
  *
- * registry.js is a classic script that publishes globalThis.QT, so we can just
- * evaluate it here — no parser, no build step, no drift between docs and code.
+ * The pack is a classic script that publishes globalThis.QS.pack, so we can
+ * just evaluate it here — no parser, no build step, no drift between docs and
+ * code. core/storage.js is loaded first only for the generic off/custom mode
+ * metadata (see core/storage.js's OFF_META/CUSTOM_META).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = readFileSync(join(root, 'src/lib/registry.js'), 'utf8');
+globalThis.chrome = { storage: { sync: { get: async () => ({}), set: async () => {} } } };
 
 // eslint-disable-next-line no-new-func
-new Function(src)();
-const { GROUPS, REGISTRY, MODE_META } = globalThis.QT;
+new Function(readFileSync(join(root, 'src/core/storage.js'), 'utf8'))();
+// eslint-disable-next-line no-new-func
+new Function(readFileSync(join(root, 'src/packs/youtube.js'), 'utf8'))();
+
+const { pack, storage } = globalThis.QS;
+const { groups: GROUPS, features: REGISTRY } = pack;
+const MODE_META = { off: storage.OFF_META, ...pack.modes, custom: storage.CUSTOM_META };
 
 const RISK = { low: 'low', med: 'med', high: '**high**' };
 const tick = (b) => (b ? '✓' : '·');
 
 let out = `# Feature reference
 
-Generated from \`src/lib/registry.js\` by \`tools/gen-features.mjs\`.
+Generated from \`src/packs/youtube.js\` by \`tools/gen-features.mjs\`.
 **Do not edit by hand** — edit the registry and regenerate.
 
 ${REGISTRY.length} toggles across ${GROUPS.length} groups.

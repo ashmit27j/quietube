@@ -1,37 +1,48 @@
 /**
- * ORCHESTRATOR.
+ * ORCHESTRATOR. Generic across every pack — it reads `globalThis.QS.pack`
+ * (set by the site pack that loads before this file) for page classification,
+ * feature list and handlers, and never names a site itself.
  *
  * Responsibilities, in order:
- *   1. classify the current page and stamp <html data-qt-page>
- *   2. run the synchronous CSS path (already fired in css-engine.js)
+ *   1. classify the current page (via the pack's own page predicates) and
+ *      stamp <html data-qs-page data-qs-site>
+ *   2. run the synchronous CSS path (already fired in core/engine.js)
  *   3. load real settings, reconcile the cache, re-apply
- *   4. run/teardown behaviour handlers
+ *   4. run/teardown behaviour handlers (core + pack, merged)
  *   5. re-do 1 + 4 on every SPA navigation
  *   6. react live to settings changes from the popup/options page
  *
  * Deliberately has no MutationObserver over the whole document. CSS does the
- * hiding; observing the DOM tree of YouTube is how extensions become slow.
+ * hiding; observing the DOM tree of a heavy SPA is how extensions become slow.
  */
 (function () {
-  const QT = globalThis.QT;
+  const QS = globalThis.QS;
+  const pack = QS.pack;
+  // Core handlers first so a pack could (in principle) override one by name;
+  // no pack does today.
+  const handlers = Object.assign({}, QS.behaviours, pack.handlers);
+
   let cfg = null;
   let flags = {};
   let cleanups = [];
 
+  /** Ask the pack's own page predicates which page type this URL is. */
   function classify() {
-    const p = location.pathname;
-    if (p === '/' || p === '') return 'home';
-    if (p.startsWith('/watch')) return 'watch';
-    if (p.startsWith('/shorts')) return 'shorts';
-    if (p.startsWith('/results')) return 'search';
-    if (p.startsWith('/feed/subscriptions')) return 'subs';
-    if (p.startsWith('/@') || p.startsWith('/channel/') || p.startsWith('/c/')) return 'channel';
+    const url = new URL(location.href);
+    for (const [name, test] of Object.entries(pack.pages)) {
+      try {
+        if (test(url)) return name;
+      } catch (e) {
+        console.warn(`[QuietSurf] pack "${pack.id}" page test "${name}" threw`, e);
+      }
+    }
     return 'other';
   }
 
   function stampPage() {
     const page = classify();
-    document.documentElement.setAttribute('data-qt-page', page);
+    document.documentElement.setAttribute('data-qs-page', page);
+    document.documentElement.setAttribute('data-qs-site', pack.id);
     return page;
   }
 
@@ -45,29 +56,30 @@
   function runBehaviours(page) {
     teardown();
     const ctx = { page, flags, cfg };
-    for (const f of QT.jsFeatures) {
+    for (const f of pack.features) {
+      if (f.kind !== 'js' && f.kind !== 'both') continue;
       if (!flags[f.id]) continue;
       if (f.pages !== 'all' && f.pages !== page) continue;
-      const fn = QT.behaviours[f.handler];
+      const fn = handlers[f.handler];
       if (typeof fn !== 'function') {
-        console.warn(`[Quiet] registry declares handler "${f.handler}" for ${f.id}, but it is not implemented`);
+        console.warn(`[QuietSurf] registry declares handler "${f.handler}" for ${f.id}, but it is not implemented`);
         continue;
       }
       try {
         const cleanup = fn(ctx);
         if (typeof cleanup === 'function') cleanups.push(cleanup);
       } catch (e) {
-        console.warn(`[Quiet] handler ${f.handler} failed`, e);
+        console.warn(`[QuietSurf] handler ${f.handler} failed`, e);
       }
     }
   }
 
   async function refresh() {
-    cfg = await QT.storage.load();
-    const resolved = QT.storage.resolve(cfg);
+    cfg = await QS.storage.load();
+    const resolved = QS.storage.resolve(cfg);
     flags = resolved.flags;
-    QT.css.writeCache(flags);   // keep the no-flash cache honest
-    QT.css.apply(flags);
+    QS.css.writeCache(flags);   // keep the no-flash cache honest
+    QS.css.apply(flags);
     runBehaviours(stampPage());
   }
 
@@ -76,22 +88,25 @@
   refresh();
 
   // ── SPA navigation ──────────────────────────────────────────────────────
-  // yt-navigate-finish is YouTube's own signal and is far cheaper than
-  // polling location.href or observing the document.
-  document.addEventListener('yt-navigate-finish', () => {
+  function onNavigate() {
     const page = stampPage();
-    QT.css.apply(flags);
+    QS.css.apply(flags);
     runBehaviours(page);
-  });
+  }
 
-  // Some flows (Shorts → watch) change the URL without firing the event.
+  // A pack may name its own site's SPA-router event(s) for an instant
+  // reaction — purely an optimisation, never required, since the href poll
+  // below always catches up.
+  for (const evt of pack.navEvents || []) {
+    document.addEventListener(evt, onNavigate);
+  }
+
+  // Some flows change the URL without firing any such event.
   let lastHref = location.href;
   setInterval(() => {
     if (location.href !== lastHref) {
       lastHref = location.href;
-      const page = stampPage();
-      QT.css.apply(flags);
-      runBehaviours(page);
+      onNavigate();
     }
   }, 800);
 

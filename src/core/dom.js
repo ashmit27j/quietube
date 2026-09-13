@@ -1,12 +1,11 @@
 /**
- * Small DOM helpers shared by the behaviour handlers.
+ * Small DOM helpers shared by every pack's behaviour handlers.
  *
  * The only place in this codebase where a MutationObserver is legitimate:
- * YouTube hydrates lazily, so a handler that runs on navigation often fires
- * before its target exists (comments in particular arrive hundreds of ms after
- * yt-navigate-finish). `waitFor` observes a NARROW subtree for a BOUNDED time
- * and disconnects itself. Never observe the whole document indefinitely — see
- * docs/ARCHITECTURE.md.
+ * a site's own framework hydrates lazily, so a handler that runs on
+ * navigation often fires before its target exists. `waitFor` observes a
+ * NARROW subtree for a BOUNDED time and disconnects itself. Never observe the
+ * whole document indefinitely — see docs/ARCHITECTURE.md.
  */
 (function () {
   /**
@@ -50,7 +49,7 @@
       for (const el of document.querySelectorAll(selector)) {
         if (seen.has(el)) continue;
         seen.add(el);
-        try { fn(el); } catch (e) { console.warn('[Quiet] onEach', selector, e); }
+        try { fn(el); } catch (e) { console.warn('[QuietSurf] onEach', selector, e); }
       }
     };
     sweep();
@@ -72,5 +71,5 @@
     return () => fns.forEach((f) => { try { f && f(); } catch {} });
   }
 
-  globalThis.QT = Object.assign(globalThis.QT || {}, { dom: { waitFor, onEach, every, all } });
+  globalThis.QS = Object.assign(globalThis.QS || {}, { dom: { waitFor, onEach, every, all } });
 })();

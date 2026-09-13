@@ -17,14 +17,14 @@
       "matches": ["*://*.youtube.com/*"],
       "run_at": "document_start",
       "all_frames": false,
-      "css": ["styles/injected.css"],
+      "css": ["packs/youtube.css"],
       "js": [
-        "lib/registry.js",
-        "lib/dom.js",
-        "lib/storage.js",
-        "content/css-engine.js",
-        "content/behaviours.js",
-        "content/main.js"
+        "core/dom.js",
+        "core/storage.js",
+        "packs/youtube.js",
+        "core/engine.js",
+        "core/behaviours.js",
+        "core/main.js"
       ]
     }
   ],

@@ -1,5 +1,65 @@
 # Architecture
 
+## Core + packs
+
+The extension is one generic engine (`src/core/`) plus one file per site
+(`src/packs/<id>.js`). Core has no idea what YouTube, Reddit, or any other
+site looks like — it only knows the **pack contract**:
+
+```
+{
+  id:        stable slug, also the site key in storage and in data-qs-site.
+  label:     display name for the options page / popup.
+  hosts:     match patterns for manifest.json's content_scripts + host
+             permissions for this pack.
+  pages:     { [pageName]: (url: URL) => boolean } — classifies the current
+             URL into one of this pack's own page names, checked by
+             core/main.js in declaration order. No name is reserved except
+             'all', which every pack gets for free as a feature's `pages`
+             value meaning "every page type".
+  groups:    options-page sections. [{ id, label, blurb }]
+  features:  the registry — every selector this pack uses lives here and
+             nowhere else. See the field reference in packs/<id>.js.
+  handlers:  { [name]: (ctx) => cleanupFn | void } for kind:'js'/'both'
+             features. core/main.js merges these with core/behaviours.js
+             (core wins a name collision; none exists today).
+  modes:     { [modeName]: { label, blurb } } — the pack's OWN modes.
+             'off' and 'custom' are core concepts every pack gets for free
+             and must not be redeclared here.
+}
+```
+
+Two optional extension hooks beyond the required shape:
+
+- `customBaseMode` — which of the pack's own modes `'custom'` starts from.
+- `navEvents: string[]` — custom DOM events the site's own SPA router fires
+  on navigation, for an instant reaction. Purely an optimisation: the
+  generic href-poll in `core/main.js` always catches up within 800ms.
+- `buildExtraCss(flags, pageScope)` — raw CSS for `style: true` features (a
+  filter, an opacity, a layout change) that the generic hide loop in
+  `core/engine.js` skips — see D12. `pageScope` maps the pack's own page
+  names (plus `'all'`) to their `html[data-qs-page="…"]` selector, so a rule
+  can be page-scoped without the pack hardcoding the attribute name itself.
+
+**Rule:** `core/` must contain zero site-specific selectors, hostnames or
+page-type names. When it doesn't, a site pack is inert until its
+`content_scripts` entry loads, and adding a second pack changes nothing
+about the first. Grepping `src/core/*.js` for a pack's own vocabulary
+(`ytd-`, `youtube`, whole-word `shorts` for the YouTube pack) is a fast way
+to catch a leak — `tests/registry.spec.js` runs exactly that check. `watch`
+is deliberately excluded from the automated check (it's an ordinary English
+word as often as a page name — see `core/storage.js`'s `placeholderText`
+default) and stays a manual grep instead.
+
+Only one handler is genuinely site-agnostic enough to live in
+`core/behaviours.js`: `pauseOnBlur`, because it touches only the standard
+`<video>` element. Every other current handler (`shortsRedirect`,
+`redirectHomeToSubs`, `forceAutoplayOff`, `disableAmbient`,
+`collapseComments`, `homePlaceholder`, `exploreTrending`) is YouTube-specific
+and lives in `packs/youtube.js`. A feature's *registry entry* stays with the
+pack whose options page shows it even when its *handler implementation*
+lives in core (see `pause_on_blur` in `packs/youtube.js`).
+
 ## Data flow
 
 ```
@@ -10,18 +70,19 @@
                              │
                              ▼
         resolve(cfg) = modeDefaults ▸ custom ▸ overrides ▸ peek
+                     (modeDefaults comes from globalThis.QS.pack)
                              │
                  ┌───────────┴────────────┐
                  ▼                        ▼
         css.buildCss(flags)        runBehaviours(page)
                  │                        │
                  ▼                        ▼
-        <style id="qt-style">      handlers in behaviours.js
+        <style id="qs-style">   handlers: core + pack, merged
                  │                        │
-                 └──────► youtube.com ◄───┘
+                 └──────► the site ◄──────┘
                              ▲
                              │ (synchronous cache)
-                    localStorage['qt:flags:v1']
+                    localStorage['qs:flags:v1']
 ```
 
 ## No-flash (the important bit)
@@ -34,38 +95,41 @@ const cfg = await chrome.storage.sync.get();   // ← one frame paints here
 injectCss(cfg);
 ```
 
-will show the full YouTube homepage for one frame on every cold load. That
-flash is the single most common complaint across DF Tube, Unhook and DF YouTube
-reviews.
+will show the full page for one frame on every cold load. That flash is the
+single most common complaint across DF Tube, Unhook and DF YouTube reviews.
 
-Quiet mirrors the *resolved* flags into the page origin's `localStorage`, which
-a content script can read **synchronously**:
+QuietSurf mirrors the *resolved* flags into the page origin's `localStorage`,
+which a content script can read **synchronously**:
 
-1. `css-engine.js` runs at parse time, reads `localStorage['qt:flags:v1']`,
-   builds the stylesheet string and appends a `<style>` to
-   `document.documentElement` — all before the parser reaches `<body>`.
-2. `main.js` then awaits `chrome.storage`, resolves for real, rewrites the
-   cache and re-applies. If the two agree (the normal case) the second apply is
-   a no-op because `css.apply` compares `textContent` first.
+1. `core/engine.js` runs at parse time (after the pack has already loaded —
+   see load order below), reads `localStorage['qs:flags:v1']`, builds the
+   stylesheet string and appends a `<style>` to `document.documentElement` —
+   all before the parser reaches `<body>`.
+2. `core/main.js` then awaits `chrome.storage`, resolves for real, rewrites
+   the cache and re-applies. If the two agree (the normal case) the second
+   apply is a no-op because `css.apply` compares `textContent` first.
 
 The cache is never authoritative. A cold profile, a cleared cache, or blocked
 storage simply falls back to the async path — the same behaviour the
-competitors have, and only on the very first page load.
+competitors have, and only on the very first page load. The cache lives in
+the page's own origin, so each site's pack gets an isolated cache for free.
 
 ## Page scoping
 
-`main.js` classifies the URL and stamps `<html data-qt-page="watch">`. Every
-generated rule is prefixed with that scope, so a selector meant for search
-results cannot fire on a channel page that reuses the same renderer. The stamp
-is refreshed on `yt-navigate-finish` and by an 800ms href poll (some
-transitions, notably the Shorts redirect, do not fire the event).
+`core/main.js` asks the active pack's `pages` predicates which page type the
+current URL is, and stamps `<html data-qs-page="watch" data-qs-site="youtube">`.
+Every generated rule is prefixed with the matching page scope, so a selector
+meant for search results cannot fire on a channel page that reuses the same
+renderer. The stamp is refreshed on the pack's own `navEvents` (if any) and by
+an 800ms href poll (some transitions, notably YouTube's Shorts redirect, do
+not fire a framework navigation event).
 
 ## Why there is no global MutationObserver
 
 There isn't one, and adding one should be treated as a design failure. CSS
 handles every hiding case; the JS handlers that do need to react
-(`forceAutoplayOff`, `disableAmbient`) use a bounded 2–3s interval scoped to the
-watch page and are torn down on navigation. Total idle cost is two timers.
+(`forceAutoplayOff`, `disableAmbient`) use a bounded 2–3s interval scoped to
+one page type and are torn down on navigation. Total idle cost is two timers.
 
 ## Handler lifecycle
 
@@ -74,9 +138,10 @@ navigate → teardown() (run every stored cleanup) → runBehaviours(page)
 ```
 
 Every handler must be idempotent and may return a cleanup function. A handler
-that throws is caught and logged; it never blocks the others. A registry entry
-naming a handler that does not exist logs a clear warning rather than failing
-silently — that warning is the fastest signal that a feature was half-added.
+that throws is caught and logged; it never blocks the others. A registry
+entry naming a handler that does not exist logs a clear warning rather than
+failing silently — that warning is the fastest signal that a feature was
+half-added.
 
 ## Storage shape
 
@@ -94,17 +159,22 @@ silently — that warning is the fastest signal that a feature was half-added.
 }
 ```
 
-Migrations go in `storage.js → migrate()`, one branch per schema bump. Never
-rename a registry `id`; add a new one and migrate the old key.
+This is schema 1 — a single site's worth of settings at the top level, which
+is what a single-pack install still needs. Schema 2 (multi-site) replaces
+this shape entirely; see `docs/DECISIONS.md`.
+
+Migrations go in `core/storage.js → migrate()`, one branch per schema bump.
+Never rename a registry `id`; add a new one and migrate the old key.
 
 ## Adding a feature
 
 Use `/add-toggle`, or by hand:
 
-1. Add an entry to `REGISTRY` in `src/lib/registry.js` — `sel` ordered
-   most-stable-first, a `risk` rating, and a default for each of
-   `study` / `music` / `casual`.
-2. If `kind: 'js'`, implement the handler in `behaviours.js` with the exact
+1. Add an entry to `features` in `src/packs/<id>.js` — `sel` ordered
+   most-stable-first, a `risk` rating, a `verified` status, and a default for
+   each mode the pack declares.
+2. If `kind: 'js'`, implement the handler in the pack's `handlers` object (or
+   `core/behaviours.js` if it is genuinely site-agnostic) with the exact
    `handler` name. Return a cleanup function if it attaches anything.
 3. Add a case to `tests/selectors.spec.js`.
 4. Regenerate `docs/FEATURES.md` (`node tools/gen-features.mjs`).
@@ -117,7 +187,7 @@ The options page and the stylesheet need no edits — both are generated.
 |---|---|---|---|
 | 1 | `ytd-rich-grid-renderer` | high — these custom element names change rarely | default |
 | 2 | `#secondary`, `[page-subtype="home"]` | medium | when tier 1 is too broad |
-| 3 | `.ytp-endscreen-content` | low — YouTube churns classes | last resort, mark `risk:'high'` |
+| 3 | `.ytp-endscreen-content` | low — sites churn classes | last resort, mark `risk:'high'` |
 
 Put several in the `sel` array; extras that match nothing cost nothing. Tier-3
 selectors get the "fragile" badge in the options UI so a user whose toggle
