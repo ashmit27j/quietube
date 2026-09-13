@@ -14,6 +14,11 @@
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const QUICK_MAX = 5;
 
+  // Which site cards are expanded. Not persisted — every card starts
+  // collapsed on open, and this only needs to survive re-renders triggered
+  // by the user's own clicks within this one page session.
+  const expanded = new Set();
+
   async function persistSites() {
     await QS.storage.save({ sites: cfg.sites });
   }
@@ -40,12 +45,39 @@
 
       const card = document.createElement('section');
       card.className = 'card site-card';
+      const isExpanded = expanded.has(pack.id);
 
       const head = document.createElement('div');
       head.className = 'site-head';
+
+      const left = document.createElement('div');
+      left.className = 'site-head-left';
+
+      const expandBtn = document.createElement('button');
+      expandBtn.type = 'button';
+      expandBtn.className = 'expand-btn';
+      expandBtn.setAttribute('aria-expanded', String(isExpanded));
+      expandBtn.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} ${pack.label} toggles`);
+      expandBtn.textContent = '▸';
+      expandBtn.onclick = () => {
+        if (isExpanded) expanded.delete(pack.id);
+        else expanded.add(pack.id);
+        renderSites();
+      };
+
+      // A neutral initial badge, not the site's own logo — this project
+      // avoids other products' trademarked marks the same way it avoids a
+      // play-button shape or red in its own icon (see docs/DECISIONS.md D10).
+      const logo = document.createElement('div');
+      logo.className = 'site-logo';
+      logo.textContent = pack.label.trim().charAt(0).toUpperCase();
+      logo.setAttribute('aria-hidden', 'true');
+
       const h2 = document.createElement('h2');
       h2.textContent = pack.label;
-      head.append(h2);
+
+      left.append(expandBtn, logo, h2);
+      head.append(left);
       card.append(head);
 
       // modes
@@ -95,9 +127,10 @@
         card.append(note);
       }
 
-      // feature toggles, grouped
+      // feature toggles, grouped — collapsed by default (see `expanded` above)
       const groupsHost = document.createElement('div');
       groupsHost.className = 'groups';
+      groupsHost.hidden = !isExpanded;
       for (const g of pack.groups) {
         const items = pack.features.filter((f) => f.group === g.id);
         if (!items.length) continue;

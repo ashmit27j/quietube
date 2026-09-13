@@ -1,0 +1,21 @@
+/* Styles for elements THIS PACK adds to linkedin.com.
+   Never put LinkedIn-hiding rules here — those are generated from the pack's
+   registry at runtime by core/engine.js. This file is static and is listed
+   in manifest.json's content_scripts.css, so it is applied before first
+   paint with no JS involved. */
+
+.qs-reveal-btn {
+  display: block;
+  margin: 16px 0 24px;
+  padding: 9px 16px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 18px;
+  background: transparent;
+  color: inherit;
+  font: 500 14px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.qs-reveal-btn:hover {
+  background: rgba(128, 128, 128, 0.15);
+}

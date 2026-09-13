@@ -7,7 +7,7 @@
 
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": [],
-  "optional_host_permissions": ["*://*.youtube.com/*", "*://*.reddit.com/*"],
+  "optional_host_permissions": ["*://*.youtube.com/*", "*://*.reddit.com/*", "*://*.linkedin.com/*"],
 
   "background": {
     "service_worker": "background/service-worker.js"

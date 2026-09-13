@@ -101,7 +101,7 @@ test('install grants no host permissions — optional_host_permissions stays opt
   expect(granted.permissions).toEqual(expect.arrayContaining(['storage', 'scripting']));
 });
 
-test('with zero permissions granted, neither pack injects on its own host', async () => {
+test('with zero permissions granted, no pack injects on its own host', async () => {
   const yt = await ctx.newPage();
   await yt.goto('https://www.youtube.com/');
   await yt.waitForTimeout(800);
@@ -119,6 +119,15 @@ test('with zero permissions granted, neither pack injects on its own host', asyn
     'the Reddit pack must not run before its host permission is granted'
   ).toBeNull();
   await rd.close();
+
+  const li = await ctx.newPage();
+  await li.goto('https://www.linkedin.com/');
+  await li.waitForTimeout(800);
+  expect(
+    await li.evaluate(() => document.documentElement.getAttribute('data-qs-site')),
+    'the LinkedIn pack must not run before its host permission is granted'
+  ).toBeNull();
+  await li.close();
 });
 
 test('pack-scripts.js registers and unregisters against the real chrome.scripting API', async () => {
@@ -171,9 +180,36 @@ test.describe('popup and options pages (step 6 progressive disclosure)', () => {
     await page.goto(await extensionUrl('options/options.html'));
     await page.waitForTimeout(600);
 
-    expect(await page.locator('.site-card').count(), 'one card per known pack').toBe(2);
+    expect(await page.locator('.site-card').count(), 'one card per known pack').toBe(3);
     expect(await page.locator('#master-toggle').isChecked()).toBe(true);
     expect(errors).toEqual([]);
+    await page.close();
+  });
+
+  test('footer links to GitHub and every site card shows a logo badge', async () => {
+    const page = await ctx.newPage();
+    await page.goto(await extensionUrl('options/options.html'));
+    await page.waitForTimeout(600);
+
+    const githubLink = page.locator('.foot a[href*="github.com"]');
+    await expect(githubLink).toHaveCount(1);
+    expect(await page.locator('.site-card .site-logo').count()).toBe(3);
+    await page.close();
+  });
+
+  test('site cards start collapsed and expand on the arrow click', async () => {
+    const page = await ctx.newPage();
+    await page.goto(await extensionUrl('options/options.html'));
+    await page.waitForTimeout(600);
+
+    const firstCard = page.locator('.site-card').first();
+    await expect(firstCard.locator('.groups')).toBeHidden();
+    await expect(firstCard.locator('.modes'), 'the mode picker must stay visible while collapsed').toBeVisible();
+
+    await firstCard.locator('.expand-btn').click();
+    await page.waitForTimeout(200);
+    await expect(firstCard.locator('.groups')).toBeVisible();
+    await expect(firstCard.locator('.expand-btn')).toHaveAttribute('aria-expanded', 'true');
     await page.close();
   });
 
@@ -193,6 +229,11 @@ test.describe('popup and options pages (step 6 progressive disclosure)', () => {
     const page = await ctx.newPage();
     await page.goto(await extensionUrl('options/options.html'));
     await page.waitForTimeout(600);
+
+    // Site cards collapse their toggle list by default — expand the first
+    // one before the quick-star (inside it) can be interacted with.
+    await page.locator('.expand-btn').first().click();
+    await page.waitForTimeout(200);
 
     const star = page.locator('.quick-star').first();
     await expect(star).toHaveAttribute('aria-pressed', 'false');

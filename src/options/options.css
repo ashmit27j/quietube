@@ -26,9 +26,27 @@ h1 { margin:0; font-size:26px; font-weight:650; letter-spacing:-0.02em; }
 .note { font-size:13px; color:var(--muted); margin:12px 0 0; }
 
 .site-card { padding:24px; }
-.site-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.site-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.site-head-left { display:flex; align-items:center; gap:10px; min-width:0; }
 .site-head h2 { font-size:19px; }
 .site-head .blurb { color:var(--muted); font-size:13px; margin:2px 0 0; }
+
+.site-logo {
+  flex:0 0 auto; width:28px; height:28px; border-radius:7px;
+  background:var(--fg); color:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; line-height:1;
+}
+
+.expand-btn {
+  flex:0 0 auto; width:24px; height:24px; padding:0; margin-right:2px;
+  border:none; background:none; color:var(--muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; transition:transform .15s;
+}
+.expand-btn:hover { color:var(--fg); }
+.expand-btn[aria-expanded="true"] { transform:rotate(90deg); }
+
 .groups { margin-top:18px; }
 .group-block { padding-top:16px; }
 .group-block:first-child { padding-top:0; }
@@ -88,3 +106,7 @@ button { font:inherit; }
 .days input:checked + span { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
 
 .foot { margin-top:32px; color:var(--muted); font-size:12px; text-align:center; }
+.foot p { margin:0 0 8px; }
+.foot p:last-child { margin-bottom:0; }
+.foot a { color:var(--muted); text-decoration:underline; text-underline-offset:2px; }
+.foot a:hover { color:var(--fg); }

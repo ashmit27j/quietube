@@ -43,6 +43,19 @@ const QS_PACKS = [
       'core/main.js',
     ],
   },
+  {
+    id: 'linkedin',
+    matches: ['*://*.linkedin.com/*'],
+    css: ['packs/linkedin.css'],
+    js: [
+      'core/dom.js',
+      'core/storage.js',
+      'packs/linkedin.js',
+      'core/engine.js',
+      'core/behaviours.js',
+      'core/main.js',
+    ],
+  },
 ];
 
 function packEntry(pack) {

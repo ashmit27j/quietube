@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 // Add a pack id here when a new one ships.
-const PACK_IDS = ['youtube', 'reddit'];
+const PACK_IDS = ['youtube', 'reddit', 'linkedin'];
 
 const engineSrc = readFileSync(new URL('../src/core/engine.js', import.meta.url), 'utf8');
 

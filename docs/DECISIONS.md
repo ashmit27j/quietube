@@ -349,3 +349,31 @@ switching and quick-toggle stars work end-to-end (screenshotted), and the
 "no pack matched" fallback path renders correctly and doesn't crash when
 `tab.url` is unavailable — which is the actual state this environment can
 produce, so at least that fallback path is exercised for real.
+
+## D18 — LinkedIn pack, and a "logo" that isn't a logo
+
+**LinkedIn is `verified: 'needs-account'` across every feature, not
+`'unverified'`.** Confirmed live this session (LinkedIn itself was
+reachable, unlike Reddit's D15 network block): `/` and `/feed/` both
+redirect straight to a sign-in wall for a signed-out session, so there is no
+content at all to check a selector against — a stronger, structural reason
+than "couldn't confirm either way," and the field's `'needs-account'` value
+exists for exactly this case (see D14's original `notification_bell`
+reasoning). LinkedIn also doesn't expose custom elements the way YouTube's
+`ytd-*` or Reddit's `shreddit-*` do — it's conventional divs and class
+names — so every selector here is tier 3 (`risk: 'high'`) even before
+considering that none of them have been checked against a real, signed-in
+session. No LinkedIn account is available in this environment to verify
+against; do not promote anything to `'live'` without one.
+
+**The options page's per-site "logo" is a neutral initial badge, not any
+site's actual mark.** Asked for directly ("add a logo of the site"), but
+this project has drawn a hard trademark line since D10: no play-button
+shape, no red, no Snoo, and now — with LinkedIn — no "in" logo either.
+Embedding YouTube's, Reddit's or LinkedIn's actual marks in QuietSurf's own
+UI is exactly the kind of confusable-with-an-official-mark risk the Chrome
+Web Store review process exists to catch, on top of being someone else's
+trademark to begin with. A single-letter badge (`pack.label.charAt(0)`, one
+line, no per-site asset to maintain) gives the visual differentiation asked
+for without that risk. Swap in real icons later only with assets actually
+licensed for this use.

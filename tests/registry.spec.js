@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 // Add a pack id here when a new one ships — nothing else in this file
 // names a specific pack.
-const PACK_IDS = ['youtube', 'reddit'];
+const PACK_IDS = ['youtube', 'reddit', 'linkedin'];
 
 const coreBehavioursSrc = readFileSync(new URL('../src/core/behaviours.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../src/manifest.json', import.meta.url), 'utf8'));
@@ -158,11 +158,11 @@ test('core is free of any pack\'s selectors or hostnames', () => {
   // it is a YouTube page name, so it stays a CLAUDE.md manual grep rather
   // than a check that would flag its own prose. Distinctive, essentially-
   // never-accidental tokens ('ytd-', 'youtube', whole-word 'shorts',
-  // 'reddit', 'shreddit-') don't have that problem — a hit on one of these
-  // means either a real leak or a comment that should say "a pack" instead
-  // of naming one (see D15's fix in core/dom.js).
+  // 'reddit', 'shreddit-', 'linkedin') don't have that problem — a hit on
+  // one of these means either a real leak or a comment that should say "a
+  // pack" instead of naming one (see D15's fix in core/dom.js).
   const coreFiles = ['core/dom.js', 'core/storage.js', 'core/engine.js', 'core/behaviours.js', 'core/main.js'];
-  const leakRe = /ytd-|youtube|\bshorts\b|reddit|shreddit-/i;
+  const leakRe = /ytd-|youtube|\bshorts\b|reddit|shreddit-|linkedin/i;
   for (const f of coreFiles) {
     const src = readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');
     const hit = src.split('\n').map((line, i) => ({ line, i })).find(({ line }) => leakRe.test(line));

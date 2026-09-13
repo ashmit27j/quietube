@@ -53,11 +53,13 @@ Other extensions hide the Shorts shelves — but a /shorts/ link from a friend s
 
 Plus the shelves, the sidebar entry, Shorts in search, the channel tab, and Shorts in your subscriptions.
 
-━━ 41 THINGS YOU CAN HIDE ON YOUTUBE, 6 ON REDDIT (AND COUNTING) ━━
+━━ 41 THINGS YOU CAN HIDE ON YOUTUBE, 6 ON REDDIT, 8 ON LINKEDIN (AND COUNTING) ━━
 
 YouTube: home feed and topic chips · subscriptions feed · watch-page sidebar · end-of-video wall · in-video cards and annotations · "people also search for" · auto-generated mixes · all playlists · every Shorts entry point · comments (hide, or collapse behind a button) · commenter avatars · live chat · autoplay · ambient mode · view counts · like counts · merch, tickets and offers · video descriptions · subscribe and join buttons · left sidebar · Explore and Trending · notification bell · search autocomplete · promoted results · "for you" shelves in search · and more.
 
 Reddit: promoted posts · recommended-community cards · Trending Today & Popular Communities · the whole right sidebar · award & coin prompts · comment collapse.
+
+LinkedIn: promoted posts · "because you follow" discovery cards · People You May Know · the LinkedIn News sidebar · the whole right sidebar · Premium upsell banners · the notification badge · comment collapse.
 
 Two you won't find anywhere else: grayscale thumbnails, which takes most of the pull out of clickbait, and pause-on-tab-switch, so a video can't keep playing while you work.
 
@@ -79,7 +81,7 @@ MIT licensed. Issues and pull requests welcome — including a pull request addi
 
 —
 
-Not affiliated with YouTube, Google, Reddit, or any site this extension supports.
+Not affiliated with YouTube, Google, Reddit, LinkedIn, or any site this extension supports.
 ```
 
 ## Permission justifications
@@ -90,12 +92,13 @@ are `optional_host_permissions`.
 
 | Field | Text |
 |---|---|
-| Single purpose | Hide user-selected distracting parts of supported sites' web interfaces (currently YouTube and Reddit), per site and per user preference. |
+| Single purpose | Hide user-selected distracting parts of supported sites' web interfaces (currently YouTube, Reddit and LinkedIn), per site and per user preference. |
 | `storage` | Stores the user's own toggle settings and selected mode, per site. No other data is stored. |
 | `scripting` | Lets a site's hiding rules start applying immediately after the user grants that site, instead of waiting for a tab reload or browser restart. Only used for sites the user has already been asked about and approved. |
 | `activeTab` | Lets the popup show the right view (mode picker vs. "no pack for this site") for whichever tab the user has open when they click the extension icon. Silent permission — no install-time prompt — and only active for that one tab while the popup is open. |
 | Optional host permission `*://*.youtube.com/*` | Requested only when the user turns on the YouTube pack. The extension modifies only the appearance of youtube.com pages. |
 | Optional host permission `*://*.reddit.com/*` | Requested only when the user turns on the Reddit pack. The extension modifies only the appearance of reddit.com pages. |
+| Optional host permission `*://*.linkedin.com/*` | Requested only when the user turns on the LinkedIn pack. The extension modifies only the appearance of linkedin.com pages. |
 | Remote code | No. All code is included in the package. |
 | Data collection | None, in every category. |
 

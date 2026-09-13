@@ -8,7 +8,8 @@ description: Package and submit this extension to the Chrome Web Store. Use when
 ## Pre-flight
 
 - [ ] `/audit-selectors youtube` run, no `risk: 'low'` or `'med'` entry
-      failing (Reddit has no live selector test yet — see D15)
+      failing (Reddit has no live selector test yet — see D15; LinkedIn
+      cannot be live-tested at all without a signed-in session — see D18)
 - [ ] `npx playwright test` green
 - [ ] Loaded unpacked, granted the YouTube pack from the popup, zero console
       errors on home / watch / search / subs / channel / shorts
@@ -32,17 +33,20 @@ archive. A zip containing a `src/` folder is the most common first rejection.
 
 ## Naming and trademark
 
-Google enforces these for extensions touching YouTube or Reddit content:
+Google enforces these for extensions touching YouTube, Reddit or LinkedIn
+content:
 
-- The name must **not begin** with "YouTube" or "Reddit" and must not be
-  confusable with an official product of either.
+- The name must **not begin** with "YouTube", "Reddit", or "LinkedIn" and
+  must not be confusable with an official product of any of them.
 - The icon must not use the YouTube logo, its play-button shape, or its red
-  — nor Reddit's Snoo mascot or its orange. The mark in `brand/` is
-  deliberately a wave/ring shape in black and white only, chosen for this
-  reason (see the brief in `tools/gen-brand.mjs`).
+  — nor Reddit's Snoo mascot or its orange — nor LinkedIn's "in" logo or its
+  blue. The mark in `brand/` is deliberately a wave/ring shape in black and
+  white only, chosen for this reason (see the brief in `tools/gen-brand.mjs`).
+  The same rule extends to the options page's per-site logo badges: they are
+  neutral initials on a solid background, never a site's actual mark (D18).
 - The description must state non-affiliation with every site supported.
-  Current wording: *"Not affiliated with YouTube, Google, Reddit, or any
-  site this extension supports."*
+  Current wording: *"Not affiliated with YouTube, Google, Reddit, LinkedIn,
+  or any site this extension supports."*
 - Do not use "official", "premium", or imply a partnership with any of them.
 
 Name: **QuietSurf**. Verify it is not already taken on the store before
@@ -54,8 +58,8 @@ deliberate choice, not an oversight (the maintainer's call, not this skill's).
 This is where most extensions get stuck. Our answers:
 
 - **Single purpose**: "Hide user-selected distracting parts of supported
-  sites' web interfaces (currently YouTube and Reddit), per site and per user
-  preference."
+  sites' web interfaces (currently YouTube, Reddit and LinkedIn), per site and
+  per user preference."
 - **Permission justification — `storage`**: "Stores the user's own toggle
   settings and selected mode, per site. No other data is stored."
 - **Permission justification — `scripting`**: "Lets a site's hiding rules

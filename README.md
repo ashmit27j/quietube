@@ -41,6 +41,14 @@ the YouTube pack and its selectors are marked `unverified` pending a live
 audit from a network that can reach reddit.com — see
 [`docs/DECISIONS.md`](docs/DECISIONS.md) D15.
 
+**LinkedIn** — 8 starting toggles: promoted posts, "because you follow"
+discovery cards, "People You May Know", the LinkedIn News sidebar module, the
+whole right sidebar, Premium upsell banners, the notification badge, and
+comment collapse. Everything here needs a signed-in session to even exist —
+LinkedIn's feed redirects a signed-out visitor straight to a sign-in wall —
+so every toggle is marked `needs-account` and unverified against a real
+session. See [`docs/DECISIONS.md`](docs/DECISIONS.md) D18.
+
 ## Modes, not a master switch
 
 Most blockers make you choose between "focused" and "normal" — so the first
@@ -78,6 +86,7 @@ No build step. `src/` is the extension.
 |---|---|---|
 | YouTube | 41 | selectors verified live |
 | Reddit | 6 | selectors unverified — see D15 |
+| LinkedIn | 8 | needs a signed-in session to verify — see D18 |
 
 ## Adding a site pack
 
@@ -154,5 +163,5 @@ typeface in `brand/` is SIL Open Font License 1.1 — see `brand/OFL-outfit.txt`
 
 ---
 
-Not affiliated with YouTube, Google, Reddit, or any site this extension
-supports.
+Not affiliated with YouTube, Google, Reddit, LinkedIn, or any site this
+extension supports.
