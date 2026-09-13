@@ -293,12 +293,23 @@
       });
       sel.onchange = () => { rule.mode = sel.value; persistSchedule(); };
 
+      const timeRange = document.createElement('div');
+      timeRange.className = 'sched-time-range';
+      timeRange.append(from, document.createTextNode('→'), to);
+
+      const controls = document.createElement('div');
+      controls.className = 'sched-rule-controls';
+      controls.append(timeRange, sel);
+
       const del = document.createElement('button');
-      del.className = 'linkbtn';
-      del.textContent = 'Remove';
+      del.type = 'button';
+      del.className = 'sched-remove';
+      del.setAttribute('aria-label', 'Remove this schedule rule');
+      del.title = 'Remove this schedule rule';
+      del.textContent = '×';
       del.onclick = () => { s.rules.splice(i, 1); persistSchedule(); renderAll(); };
 
-      row.append(days, from, document.createTextNode('→'), to, sel, del);
+      row.append(days, controls, del);
       host.append(row);
     });
   }
@@ -320,16 +331,6 @@
   };
 
   // ── backup ──────────────────────────────────────────────────────────────
-  // A backed-up file is one JSON blob covering every known pack at once, not
-  // a per-site export — show which sites that covers.
-  const backupSitesHost = $('backup-sites');
-  for (const pack of packs) {
-    const chip = document.createElement('span');
-    chip.className = 'backup-chip';
-    chip.append(document.createTextNode(pack.label));
-    backupSitesHost.append(chip);
-  }
-
   $('export').onclick = () => {
     const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -358,7 +359,7 @@
   };
 
   $('reset').onclick = async () => {
-    if (!confirm('Reset every setting to defaults?')) return;
+    if (!confirm('Restore every setting to its default?')) return;
     await (chrome.storage.sync || chrome.storage.local).clear();
     await QS.storage.save(QS.storage.DEFAULTS);
     cfg = await QS.storage.load();

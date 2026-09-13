@@ -26,20 +26,22 @@
     <section class="card">
       <h2>Schedule</h2>
       <p class="muted">Auto-switch mode by time of day. A matching rule wins over the mode picked above. One schedule applies across every site; its mode list comes from <span id="sched-pack-logo" class="inline-logo"></span><span id="sched-pack-name"></span>.</p>
-      <label class="row"><input type="checkbox" id="sched-enabled"> Enable scheduled modes</label>
+      <div class="toggle-row">
+        <label class="sw"><input type="checkbox" id="sched-enabled"><span></span></label>
+        <span>Enable scheduled modes</span>
+      </div>
       <div id="sched-rules"></div>
-      <button id="sched-add" class="linkbtn">Add rule</button>
+      <button id="sched-add" type="button" class="btn">Add rule</button>
     </section>
 
     <section class="card">
       <h2>Backup</h2>
-      <p class="muted">One file covers every site below — export it, and import it on another machine to pick up right where you left off.</p>
+      <p class="muted">One file covers every site — export it, and import it on another machine to pick up right where you left off.</p>
       <div class="row gap">
-        <button id="export">Export settings</button>
-        <button id="import">Import settings</button>
-        <button id="reset" class="danger">Reset everything</button>
+        <button id="export" type="button" class="btn">Export settings</button>
+        <button id="import" type="button" class="btn">Import settings</button>
+        <button id="reset" type="button" class="btn">Restore defaults</button>
       </div>
-      <div id="backup-sites" class="backup-sites"></div>
     </section>
 
     <footer class="foot">

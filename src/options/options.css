@@ -1,10 +1,10 @@
 :root {
   color-scheme: light dark;
   --bg:#fafafa; --card:#fff; --fg:#0f0f0f; --muted:#606060; --line:#e5e5e5;
-  --accent:#0f0f0f; --accent-fg:#fff; --danger:#b3261e;
+  --accent:#0f0f0f; --accent-fg:#fff;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg:#0b0b0b; --card:#161616; --fg:#f1f1f1; --muted:#9a9a9a; --line:#2a2a2a; --accent:#f1f1f1; --accent-fg:#0f0f0f; --danger:#f2b8b5; }
+  :root { --bg:#0b0b0b; --card:#161616; --fg:#f1f1f1; --muted:#9a9a9a; --line:#2a2a2a; --accent:#f1f1f1; --accent-fg:#0f0f0f; }
 }
 
 * { box-sizing: border-box; }
@@ -83,24 +83,46 @@ h1 { margin:0; font-size:26px; font-weight:650; letter-spacing:-0.02em; }
 .row { display:flex; align-items:center; gap:8px; }
 .row.gap { gap:10px; flex-wrap:wrap; }
 button { font:inherit; }
-.card > button, .row button { padding:8px 14px; border:1px solid var(--line); border-radius:8px;
-  background:transparent; color:var(--fg); cursor:pointer; }
-.card > button:hover, .row button:hover { border-color:var(--muted); }
-.danger { color:var(--danger); }
+
+/* Deliberately not theme-adaptive: these are the page's clear, solid action
+   buttons (Export/Import/Restore, Add rule) — always a plain white surface
+   with dark text, distinct from the transparent pill controls (.modes,
+   .linkbtn) around them, in either color scheme. */
+.btn {
+  padding:8px 14px; border:1px solid #d8d8d8; border-radius:8px;
+  background:#fff; color:#161616; cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.btn:hover { border-color:#b8b8b8; background:#f7f7f7; }
+.btn:active { background:#efefef; }
+
 .linkbtn { border:none; background:none; padding:0; color:var(--muted); text-decoration:underline;
   text-underline-offset:2px; cursor:pointer; font:inherit; font-size:13px; }
 .linkbtn:hover { color:var(--fg); }
 
-.backup-sites { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
-.backup-chip {
-  display:inline-flex; align-items:center; padding:5px 10px;
-  border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--muted);
-}
+.toggle-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:4px; }
 
-.sched-rule { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 0; }
+#sched-add { margin-top:14px; }
+
+.sched-rule {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; padding:14px 0; border-top:1px solid var(--line);
+}
+.sched-rule:first-of-type { border-top:none; }
+.sched-rule-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.sched-time-range { display:flex; align-items:center; gap:8px; color:var(--muted); }
 .sched-rule input[type="time"], .sched-rule select { padding:6px 8px; border:1px solid var(--line);
   border-radius:6px; background:var(--card); color:var(--fg); font:inherit; }
-.days { display:flex; gap:3px; }
+
+.sched-remove {
+  flex:0 0 auto; width:26px; height:26px; padding:0; margin-left:auto;
+  border:none; background:none; color:var(--muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; line-height:1; border-radius:7px; transition:color .15s, background .15s;
+}
+.sched-remove:hover { color:var(--fg); background:var(--line); }
+
+.days { display:flex; gap:4px; }
 .days label { font-size:12px; }
 .days input { display:none; }
 .days span { display:inline-block; width:26px; text-align:center; padding:5px 0; border:1px solid var(--line);
