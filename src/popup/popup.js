@@ -9,19 +9,20 @@
   const peekEl = document.getElementById('peek');
 
   let cfg = await QS.storage.load();
+  let site = cfg.sites[pack.id];
 
   function render() {
     const active = QS.storage.activeMode(cfg);
     modesEl.replaceChildren(
-      ...MODES.filter((m) => m !== 'custom' || Object.keys(cfg.custom || {}).length).map((m) => {
+      ...MODES.filter((m) => m !== 'custom' || Object.keys(site.custom || {}).length).map((m) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.role = 'radio';
         b.textContent = MODE_META[m].label;
         b.setAttribute('aria-checked', String(m === active));
         b.addEventListener('click', async () => {
-          cfg.mode = m;
-          await QS.storage.save({ mode: m, peekUntil: 0 });
+          site.mode = m;
+          await QS.storage.save({ sites: cfg.sites, peekUntil: 0 });
           render();
         });
         b.addEventListener('mouseenter', () => { blurbEl.textContent = MODE_META[m].blurb; });
@@ -35,7 +36,7 @@
     peekEl.dataset.active = peeking ? '1' : '0';
     peekEl.textContent = peeking ? 'End peek' : 'Peek for 30s';
 
-    if (cfg.schedule?.enabled && active !== cfg.mode) {
+    if (cfg.schedule?.enabled && active !== site.mode) {
       blurbEl.textContent = `Scheduled: ${MODE_META[active].label} is active right now. ${MODE_META[active].blurb}`;
     }
   }
@@ -54,6 +55,7 @@
 
   chrome.storage.onChanged.addListener(async () => {
     cfg = await QS.storage.load();
+    site = cfg.sites[pack.id];
     render();
   });
 

@@ -69,7 +69,7 @@ lives in core (see `pause_on_blur` in `packs/youtube.js`).
                     storage.load() ─► migrate()
                              │
                              ▼
-        resolve(cfg) = modeDefaults ▸ custom ▸ overrides ▸ peek
+   resolve(cfg) = masterEnabled ▸ site modeDefaults ▸ custom ▸ overrides ▸ peek
                      (modeDefaults comes from globalThis.QS.pack)
                              │
                  ┌───────────┴────────────┐
@@ -147,24 +147,35 @@ half-added.
 
 ```jsonc
 {
-  "schema": 1,
-  "mode": "study",
-  "custom": { "home_feed": true },
-  "overrides": { "comments_hide": true },
+  "schema": 2,
+  "masterEnabled": true,
+  "sites": {
+    "youtube": {
+      "mode": "study",
+      "custom": { "home_feed": true },
+      "overrides": { "comments_hide": true },
+      "quick": ["watch_sidebar", "comments_collapse", "shorts_shelf"]
+    }
+  },
   "schedule": { "enabled": true, "rules": [
     { "days": [1,2,3,4,5], "from": "09:00", "to": "17:00", "mode": "study" }
   ]},
-  "peekUntil": 0,
-  "placeholderText": "What did you come here to watch?"
+  "peekUntil": 0
 }
 ```
 
-This is schema 1 — a single site's worth of settings at the top level, which
-is what a single-pack install still needs. Schema 2 (multi-site) replaces
-this shape entirely; see `docs/DECISIONS.md`.
+`sites` is keyed by `pack.id`; `core/storage.js` never names one — a new
+pack's site record is seeded on first `load()` via `siteDefaults(pack)`.
+`masterEnabled: false` is checked before anything else in `resolve()`, so a
+site being off is not the same as the whole extension being off. `schedule`
+and `peekUntil` are deliberately NOT per-site: one set of time windows or one
+peek applies across every site at once.
 
-Migrations go in `core/storage.js → migrate()`, one branch per schema bump.
-Never rename a registry `id`; add a new one and migrate the old key.
+This is schema 2. Schema 1 was the same shape flattened at the top level for
+a single site, with no `masterEnabled` or `quick`. The schema 1 → 2 migration
+in `core/storage.js → migrate()` wraps the old flat `mode`/`custom`/
+`overrides` under `sites[pack.id]`. Never rename a registry `id`; add a new
+one and migrate the old key.
 
 ## Adding a feature
 

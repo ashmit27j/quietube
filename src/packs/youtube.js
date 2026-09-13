@@ -557,7 +557,7 @@
    * An empty page reads as broken; a question reads as intentional, and
    * reframes the visit from browsing to searching.
    */
-  H.homePlaceholder = (ctx) => {
+  H.homePlaceholder = () => {
     const { waitFor, all } = globalThis.QS.dom;
     let undo = () => {};
     const cancel = waitFor('ytd-browse[page-subtype="home"]', (host) => {
@@ -568,8 +568,7 @@
 
       const text = document.createElement('p');
       text.className = 'qs-ph-text';
-      text.textContent =
-        (ctx && ctx.cfg && ctx.cfg.placeholderText) || 'What did you come here to watch?';
+      text.textContent = 'What did you come here to watch?';
 
       box.append(text);
       host.prepend(box);

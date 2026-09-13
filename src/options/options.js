@@ -4,7 +4,9 @@
  * with no edit to this file. That is the point of the registry; keep it that way.
  *
  * Single-pack for now (see docs/DECISIONS.md): grouped-by-site rendering
- * across multiple packs is step 6, not this file.
+ * across multiple packs, and a master-kill-switch control, are step 6, not
+ * this file. This file already reads/writes the schema-2 `sites[pack.id]`
+ * shape so a second pack needs no storage changes here either.
  */
 (async function () {
   const QS = globalThis.QS;
@@ -12,9 +14,14 @@
   const MODES = ['off', ...Object.keys(pack.modes), 'custom'];
   const MODE_META = { off: QS.storage.OFF_META, ...pack.modes, custom: QS.storage.CUSTOM_META };
   let cfg = await QS.storage.load();
+  let site = cfg.sites[pack.id];
 
   const $ = (id) => document.getElementById(id);
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  async function persistSite() {
+    await QS.storage.save({ sites: cfg.sites });
+  }
 
   // ── modes ───────────────────────────────────────────────────────────────
   function renderModes() {
@@ -28,22 +35,22 @@
         b.title = MODE_META[m].blurb;
         b.setAttribute('aria-checked', String(m === active));
         b.onclick = async () => {
-          cfg.mode = m;
-          await QS.storage.save({ mode: m });
+          site.mode = m;
+          await persistSite();
           renderAll();
         };
         return b;
       })
     );
 
-    const n = Object.keys(cfg.overrides || {}).length;
+    const n = Object.keys(site.overrides || {}).length;
     $('override-note').hidden = n === 0;
     $('override-count').textContent = String(n);
   }
 
   $('clear-overrides').onclick = async () => {
-    cfg.overrides = {};
-    await QS.storage.save({ overrides: {} });
+    site.overrides = {};
+    await persistSite();
     renderAll();
   };
 
@@ -66,7 +73,7 @@
       for (const f of items) {
         const row = document.createElement('div');
         row.className = 'feat';
-        row.dataset.overridden = f.id in (cfg.overrides || {}) ? '1' : '0';
+        row.dataset.overridden = f.id in (site.overrides || {}) ? '1' : '0';
 
         const sw = document.createElement('label');
         sw.className = 'sw';
@@ -75,9 +82,9 @@
         input.checked = !!flags[f.id];
         input.setAttribute('aria-label', f.label);
         input.onchange = async () => {
-          cfg.overrides = cfg.overrides || {};
-          cfg.overrides[f.id] = input.checked;
-          await QS.storage.save({ overrides: cfg.overrides });
+          site.overrides = site.overrides || {};
+          site.overrides[f.id] = input.checked;
+          await persistSite();
           renderAll();
         };
         sw.append(input, document.createElement('span'));
@@ -114,6 +121,9 @@
   }
 
   // ── schedule ────────────────────────────────────────────────────────────
+  // Schedule is global, not per-site (see docs/storage shape) — one set of
+  // time windows picks a mode name, evaluated against whichever site is
+  // active when the window opens.
   function renderSchedule() {
     const s = (cfg.schedule = cfg.schedule || { enabled: false, rules: [] });
     $('sched-enabled').checked = !!s.enabled;
@@ -209,6 +219,7 @@
         const incoming = JSON.parse(text);
         await QS.storage.save(incoming);
         cfg = await QS.storage.load();
+        site = cfg.sites[pack.id];
         renderAll();
       } catch {
         alert('That file is not valid Quiet settings.');
@@ -222,6 +233,7 @@
     await (chrome.storage.sync || chrome.storage.local).clear();
     await QS.storage.save(QS.storage.DEFAULTS);
     cfg = await QS.storage.load();
+    site = cfg.sites[pack.id];
     renderAll();
   };
 

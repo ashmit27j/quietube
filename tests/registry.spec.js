@@ -123,10 +123,10 @@ test('manifest stays minimal', () => {
 
 test('core is free of any pack\'s selectors or hostnames', () => {
   // 'watch' deliberately excluded from this automated check — it is an
-  // ordinary English word (see core/storage.js's placeholderText default)
-  // as often as it is a YouTube page name, so it stays a CLAUDE.md manual
-  // grep rather than a check that would flag its own prose. 'ytd-',
-  // 'youtube' and whole-word 'shorts' don't have that problem.
+  // ordinary English word ("what did you come here to watch?") as often as
+  // it is a YouTube page name, so it stays a CLAUDE.md manual grep rather
+  // than a check that would flag its own prose. 'ytd-', 'youtube' and
+  // whole-word 'shorts' don't have that problem.
   const coreFiles = ['core/dom.js', 'core/storage.js', 'core/engine.js', 'core/behaviours.js', 'core/main.js'];
   const leakRe = /ytd-|youtube|\bshorts\b/i;
   for (const f of coreFiles) {
