@@ -71,5 +71,49 @@
     return () => fns.forEach((f) => { try { f && f(); } catch {} });
   }
 
-  globalThis.QS = Object.assign(globalThis.QS || {}, { dom: { waitFor, onEach, every, all } });
+  /**
+   * Collapse an element behind a "reveal" button instead of hiding it
+   * outright. Strictly better than hiding: the escape hatch means the user
+   * never has to disable the whole extension to see the one thing it hid
+   * (decision D8). Pulled into core after two packs both needed the exact
+   * same choreography for their own comment sections — `selector` and the
+   * button's copy/class are the only pack-specific parts (see D15).
+   *
+   * @param {string} selector - element to collapse (found via waitFor)
+   * @param {object} opts
+   * @param {string} opts.buttonClass - CSS class for the reveal button (the pack owns the styling)
+   * @param {string} opts.buttonText - label shown on the button
+   * @param {string} [opts.hiddenAttr] - dataset flag guarding idempotency (default 'qsCollapsed')
+   * @returns {function} cleanup
+   */
+  function collapseWithReveal(selector, { buttonClass, buttonText, hiddenAttr = 'qsCollapsed' }) {
+    let undo = () => {};
+    const cancel = waitFor(selector, (root) => {
+      if (root.dataset[hiddenAttr] === '1') return;
+      root.dataset[hiddenAttr] = '1';
+      root.style.display = 'none';
+
+      const btn = document.createElement('button');
+      btn.className = buttonClass;
+      btn.type = 'button';
+      btn.textContent = buttonText;
+      btn.addEventListener('click', () => {
+        root.style.display = '';
+        delete root.dataset[hiddenAttr];
+        btn.remove();
+      });
+      root.parentNode.insertBefore(btn, root);
+
+      undo = () => {
+        root.style.display = '';
+        delete root.dataset[hiddenAttr];
+        btn.remove();
+      };
+    });
+    return all(cancel, () => undo());
+  }
+
+  globalThis.QS = Object.assign(globalThis.QS || {}, {
+    dom: { waitFor, onEach, every, all, collapseWithReveal },
+  });
 })();

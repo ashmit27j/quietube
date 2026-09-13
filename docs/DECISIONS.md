@@ -181,3 +181,67 @@ plus one genuine break:
   `merch_shelf` (needs a channel with merch enabled) are marked `unverified`
   for the same reason: the fixed audit fixtures cannot exercise them, signed
   in or not.
+
+## D15 — Reddit pack: blocked verification, a moved boundary, generic modes
+
+**Observed (2026-09, adding the Reddit pack):** every attempt to reach Reddit
+from this environment's network — `www.reddit.com`, `old.reddit.com`, and the
+`.json` API, via Playwright and via `curl` with a normal browser user agent —
+returned Reddit's own "You've been blocked by network security" page. This
+is not a selector-shaped problem the way D14's findings were: D14's YouTube
+session could load every page and just had gaps in what was *shown*; this
+session cannot load a Reddit page's real content *at all*. The initial HTML
+shell arrives fine (server-rendered scaffolding, no custom elements yet);
+client-side hydration then replaces the body with the block page, which
+reads as the site's backend/API layer rejecting requests from this network's
+IP range, not a client-side check anything in this repo could work around.
+**Rule:** every selector in `packs/reddit.js` is marked `verified:
+'unverified'`, written from documented knowledge of Reddit's current
+`shreddit-*` web-component frontend rather than a page inspected this
+session. Do not promote any of them to `'live'` without actually running the
+`site-selector-audit` skill's three-tier method from a network that can
+reach reddit.com — the same bar every YouTube entry had to clear. There is
+also no `tests/selectors-reddit.spec.js` yet for the same reason: a live
+test that can never reach the network would only ever report "skipped,"
+which is a false signal of coverage. Add one when verification becomes
+possible.
+
+**Moved: comment-collapse choreography, pack → core.** Building the Reddit
+pack surfaced the first genuine core/pack boundary miss from step 2: YouTube's
+`collapseComments` handler (hide the comment root, insert a "Show comments"
+button, wire it back up) turned out to be *entirely* generic except for the
+one selector and the button's copy — Reddit's own comment-collapse feature
+needed to duplicate that exact choreography line for line. Extracted into
+`core/dom.js` as `collapseWithReveal(selector, {buttonClass, buttonText})`;
+both packs' handlers are now one-line calls into it. This is the "move one or
+two things" step 2's refactor was expected not to get perfectly right the
+first time — the fix was to generalise the boundary, not special-case Reddit
+around it.
+**Considered and rejected:** generalising `exploreTrending`'s "find an
+element by text, hide its ancestor" pattern the same way. Rejected because
+Reddit's six starting toggles gave no second use case for it — one example
+is not a pattern, and extracting it now would be guessing at a shape a real
+second caller hasn't demonstrated yet.
+
+**Reddit's modes are named `light` / `deep_focus`, not a third bespoke pair.**
+Step 6 of this migration already commits to those as the sitewide generic
+mode names (Casual/Music/Study are staying YouTube-flavoured extras). Since
+Reddit has no legacy naming to preserve, it adopts the future names now
+rather than shipping under Reddit-specific names step 6 would immediately
+have to rename. `customBaseMode: 'light'`.
+
+**No `navEvents` for Reddit.** The pack contract's `navEvents` hook (a site's
+own SPA-navigation event name, for an instant reaction) is optional precisely
+because it's an optimisation over the generic href-poll in `core/main.js` —
+and this is the first time that fallback path has been load-bearing rather
+than theoretical: Reddit's own navigation-event name is exactly the kind of
+thing that needed live access to confirm, so it was left unset rather than
+guessed. Confirm it once verification is possible; until then Reddit
+navigation is ~800ms slower to react than YouTube's, never wrong.
+
+**Test suite fix carried in the same commit:** `tests/registry.spec.js`'s
+"modes resolve to sane sets" check asserted `on > 5` per mode — calibrated
+for YouTube's 41-feature registry, and impossible for a 6-feature pack to
+pass without every feature being on in every mode. Replaced with a
+relative floor (`on > 0`) plus a distinctness check across a pack's modes,
+which is the invariant the test actually meant to enforce.

@@ -1,20 +1,21 @@
 /**
  * CSS engine tests — offline, no network required. Parameterised over every
- * pack (not duplicated per pack) so step 4's Reddit pack gets this coverage
- * for free.
+ * pack (not duplicated per pack), so a new pack gets this coverage for free.
  *
  * Builds a synthetic DOM containing one element per registry selector, runs
  * the REAL pack + core/engine.js against it, and asserts each target is
  * hidden and that page scoping keeps rules off the wrong page types.
  *
  * This tests OUR engine, not a site's live markup. Selector accuracy against
- * the real site is tests/selectors.spec.js, which needs network.
+ * the real site is each pack's own live selector test, which needs network
+ * (tests/selectors.spec.js for YouTube; see docs/DECISIONS.md D15 for why
+ * Reddit doesn't have one yet).
  */
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// Add a pack id here when a new one ships (step 4 adds 'reddit').
-const PACK_IDS = ['youtube'];
+// Add a pack id here when a new one ships.
+const PACK_IDS = ['youtube', 'reddit'];
 
 const engineSrc = readFileSync(new URL('../src/core/engine.js', import.meta.url), 'utf8');
 

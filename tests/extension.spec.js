@@ -1,15 +1,16 @@
 /**
- * End-to-end: load the real unpacked extension into Chromium and check that it
- * boots and injects on a youtube.com page.
+ * End-to-end: load the real unpacked extension into Chromium and check that
+ * it boots and injects on both a youtube.com and a reddit.com page.
  *
  * The page is served locally by Playwright route fulfillment, so this needs no
- * network — but the ORIGIN is real youtube.com, which is what makes the
- * manifest's content_scripts match fire. This is the strongest check available
- * offline: it validates the manifest, the content script load order, the
- * service worker, and the storage round-trip in one go.
+ * network — but the ORIGIN is real, which is what makes the manifest's
+ * content_scripts match fire. This is the strongest check available offline:
+ * it validates the manifest, the content script load order, the service
+ * worker, the storage round-trip, and (since the Reddit pack) that each
+ * pack's content_scripts entry fires only on its own host.
  *
- * Selector accuracy against YouTube's actual markup is a separate concern —
- * see tests/selectors.spec.js.
+ * Selector accuracy against a site's actual markup is a separate concern —
+ * see tests/selectors.spec.js (YouTube; Reddit has none yet, see D15).
  */
 import { test, expect, chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
@@ -118,6 +119,39 @@ test('the flags cache is written for the next cold load', async () => {
   });
   expect(cached, 'without this cache every cold load flashes the feed').not.toBeNull();
   expect(cached.home_feed).toBe(true);
+  await page.close();
+});
+
+test('the Reddit pack loads on reddit.com', async () => {
+  const page = await ctx.newPage();
+  await page.goto('https://www.reddit.com/');
+  await page.waitForTimeout(800);
+
+  const stamp = await page.evaluate(() => ({
+    site: document.documentElement.getAttribute('data-qs-site'),
+    styleEl: !!document.getElementById('qs-style'),
+  }));
+  expect(stamp.site, 'packs/reddit.js did not stamp data-qs-site').toBe('reddit');
+  expect(stamp.styleEl, 'core/engine.js did not run on reddit.com').toBe(true);
+  await page.close();
+});
+
+test('the YouTube pack does not also fire on reddit.com', async () => {
+  const page = await ctx.newPage();
+  await page.goto('https://www.reddit.com/');
+  await page.waitForTimeout(800);
+
+  // The mocked SHELL body is YouTube-shaped markup regardless of which host
+  // is requested (route fulfillment doesn't vary by URL). If the YouTube
+  // pack's content script matched reddit.com too, its home_feed rule would
+  // hide ytd-rich-grid-renderer here. It must not — only packs/reddit.js's
+  // own content_scripts entry should match this host (each pack loads only
+  // on its own host).
+  const display = await page.evaluate(() => {
+    const el = document.querySelector('ytd-rich-grid-renderer');
+    return el ? getComputedStyle(el).display : 'not-present';
+  });
+  expect(display, 'the YouTube pack must not run on reddit.com').not.toBe('none');
   await page.close();
 });
 

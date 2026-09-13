@@ -26,6 +26,20 @@
         "core/behaviours.js",
         "core/main.js"
       ]
+    },
+    {
+      "matches": ["*://*.reddit.com/*"],
+      "run_at": "document_start",
+      "all_frames": false,
+      "css": ["packs/reddit.css"],
+      "js": [
+        "core/dom.js",
+        "core/storage.js",
+        "packs/reddit.js",
+        "core/engine.js",
+        "core/behaviours.js",
+        "core/main.js"
+      ]
     }
   ],
 

@@ -68,8 +68,9 @@ tools/                   gen-features, gen-icons, check-release
 .claude/                 project skills and slash commands
 ```
 
-A second pack (`packs/reddit.js`, say) adds its own `content_scripts` entry
-and its own CSS file; nothing in `core/` changes.
+A new pack adds its own `content_scripts` entry and its own CSS file;
+nothing in `core/` changes. `packs/reddit.js` is the second one — its
+selectors are unverified pending live access, see `docs/DECISIONS.md` D15.
 
 ## Load order (do not reorder casually)
 
@@ -110,8 +111,8 @@ npm run test:live   # selectors against real YouTube — needs network
 
 ## Skills in this repo
 
-- `yt-selector-audit` — how to find a stable selector for a YouTube element,
-  the three-tier stability rules, and how to verify with Playwright.
+- `site-selector-audit` — how to find a stable selector for an element in any
+  pack, the three-tier stability rules, and how to verify with Playwright.
 - `mv3-conventions` — Manifest V3 gotchas that bite this project specifically.
 - `cws-release` — Chrome Web Store submission, trademark naming rules, and the
   permission-justification text reviewers ask for.

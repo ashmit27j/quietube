@@ -517,40 +517,13 @@
 
   // ── injected UI ──────────────────────────────────────────────────────────
 
-  /**
-   * Collapse comments behind a button instead of hiding them.
-   *
-   * Strictly better than hiding: the escape hatch means the user never
-   * uninstalls the extension to read one comment (decision D8). Comments
-   * hydrate long after navigation, hence waitFor.
-   */
-  H.collapseComments = () => {
-    const { waitFor, all } = globalThis.QS.dom;
-    let undo = () => {};
-    const cancel = waitFor('ytd-comments#comments', (root) => {
-      if (root.dataset.qsCollapsed === '1') return;
-      root.dataset.qsCollapsed = '1';
-      root.style.display = 'none';
-
-      const btn = document.createElement('button');
-      btn.className = 'qs-reveal-btn';
-      btn.type = 'button';
-      btn.textContent = 'Show comments';
-      btn.addEventListener('click', () => {
-        root.style.display = '';
-        delete root.dataset.qsCollapsed;
-        btn.remove();
-      });
-      root.parentNode.insertBefore(btn, root);
-
-      undo = () => {
-        root.style.display = '';
-        delete root.dataset.qsCollapsed;
-        btn.remove();
-      };
+  // Collapse comments behind a button instead of hiding them outright — see
+  // core/dom.js's collapseWithReveal for why this lives in core (D15).
+  H.collapseComments = () =>
+    globalThis.QS.dom.collapseWithReveal('ytd-comments#comments', {
+      buttonClass: 'qs-reveal-btn',
+      buttonText: 'Show comments',
     });
-    return all(cancel, () => undo());
-  };
 
   /**
    * Replace the home feed with a prompt rather than blank space.

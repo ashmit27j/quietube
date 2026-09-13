@@ -48,17 +48,25 @@ about the first. Grepping `src/core/*.js` for a pack's own vocabulary
 (`ytd-`, `youtube`, whole-word `shorts` for the YouTube pack) is a fast way
 to catch a leak — `tests/registry.spec.js` runs exactly that check. `watch`
 is deliberately excluded from the automated check (it's an ordinary English
-word as often as a page name — see `core/storage.js`'s `placeholderText`
-default) and stays a manual grep instead.
+word as often as a page name — see `core/storage.js`'s default placeholder
+text, "What did you come here to watch?") and stays a manual grep instead.
 
-Only one handler is genuinely site-agnostic enough to live in
+Only one *handler* is genuinely site-agnostic enough to live whole in
 `core/behaviours.js`: `pauseOnBlur`, because it touches only the standard
 `<video>` element. Every other current handler (`shortsRedirect`,
-`redirectHomeToSubs`, `forceAutoplayOff`, `disableAmbient`,
-`collapseComments`, `homePlaceholder`, `exploreTrending`) is YouTube-specific
-and lives in `packs/youtube.js`. A feature's *registry entry* stays with the
-pack whose options page shows it even when its *handler implementation*
-lives in core (see `pause_on_blur` in `packs/youtube.js`).
+`redirectHomeToSubs`, `forceAutoplayOff`, `disableAmbient`, `homePlaceholder`,
+`exploreTrending` on YouTube; Reddit's own comment-collapse) is site-specific
+and lives in its pack. A feature's *registry entry* stays with the pack whose
+options page shows it even when its *handler implementation* lives in core
+(see `pause_on_blur` in `packs/youtube.js`).
+
+One *choreography* turned out to be generic even though no single handler
+using it could be: both packs' comment-collapse feature hides a root element
+behind a "Show comments" reveal button, and the only pack-specific parts are
+the selector and the button's copy. That's `core/dom.js`'s
+`collapseWithReveal(selector, {buttonClass, buttonText})` — each pack's own
+handler is a one-line call into it (see `docs/DECISIONS.md` D15 for how this
+boundary correction was found).
 
 ## Data flow
 

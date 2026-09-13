@@ -5,9 +5,9 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// Add a pack id here when a new one ships (step 4 adds 'reddit') — nothing
-// else in this file names a specific pack.
-const PACK_IDS = ['youtube'];
+// Add a pack id here when a new one ships — nothing else in this file
+// names a specific pack.
+const PACK_IDS = ['youtube', 'reddit'];
 
 const coreBehavioursSrc = readFileSync(new URL('../src/core/behaviours.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../src/manifest.json', import.meta.url), 'utf8'));
@@ -79,12 +79,26 @@ for (const id of PACK_IDS) {
       }
     });
 
-    test('modes resolve to sane sets', () => {
+    test('modes resolve to sane, distinct sets', () => {
+      // Deliberately relative to pack.features.length, not a fixed count —
+      // a fixed ">5" floor (this test's first version) assumed a YouTube-sized
+      // registry and would demand every single Reddit feature be on in every
+      // mode. Exactly the kind of thing step 4 exists to catch.
       const modeNames = Object.keys(pack.modes);
+      const resolved = {};
       for (const m of modeNames) {
-        const on = Object.values(globalThis.QS.storage.defaultsFor(pack, m)).filter(Boolean).length;
-        expect(on, `${m} mode turns nothing on`).toBeGreaterThan(5);
+        const flags = globalThis.QS.storage.defaultsFor(pack, m);
+        resolved[m] = flags;
+        const on = Object.values(flags).filter(Boolean).length;
+        expect(on, `${m} mode turns nothing on`).toBeGreaterThan(0);
         expect(on, `${m} mode turns everything on`).toBeLessThanOrEqual(pack.features.length);
+      }
+      if (modeNames.length > 1) {
+        const distinctSets = new Set(modeNames.map((m) => JSON.stringify(resolved[m])));
+        expect(
+          distinctSets.size,
+          'a pack\'s modes should not all resolve identically — otherwise they are the same mode twice'
+        ).toBeGreaterThan(1);
       }
       expect(
         Object.values(globalThis.QS.storage.defaultsFor(pack, 'off')).some(Boolean),
@@ -125,10 +139,13 @@ test('core is free of any pack\'s selectors or hostnames', () => {
   // 'watch' deliberately excluded from this automated check — it is an
   // ordinary English word ("what did you come here to watch?") as often as
   // it is a YouTube page name, so it stays a CLAUDE.md manual grep rather
-  // than a check that would flag its own prose. 'ytd-', 'youtube' and
-  // whole-word 'shorts' don't have that problem.
+  // than a check that would flag its own prose. Distinctive, essentially-
+  // never-accidental tokens ('ytd-', 'youtube', whole-word 'shorts',
+  // 'reddit', 'shreddit-') don't have that problem — a hit on one of these
+  // means either a real leak or a comment that should say "a pack" instead
+  // of naming one (see D15's fix in core/dom.js).
   const coreFiles = ['core/dom.js', 'core/storage.js', 'core/engine.js', 'core/behaviours.js', 'core/main.js'];
-  const leakRe = /ytd-|youtube|\bshorts\b/i;
+  const leakRe = /ytd-|youtube|\bshorts\b|reddit|shreddit-/i;
   for (const f of coreFiles) {
     const src = readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');
     const hit = src.split('\n').map((line, i) => ({ line, i })).find(({ line }) => leakRe.test(line));
