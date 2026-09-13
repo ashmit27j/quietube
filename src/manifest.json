@@ -5,43 +5,13 @@
   "description": "Hide the feed, sidebar, Shorts and comments on YouTube. 40+ toggles, switchable modes, zero paywall, zero accounts, zero tracking.",
   "minimum_chrome_version": "105",
 
-  "permissions": ["storage"],
-  "host_permissions": ["*://*.youtube.com/*"],
+  "permissions": ["storage", "scripting"],
+  "host_permissions": [],
+  "optional_host_permissions": ["*://*.youtube.com/*", "*://*.reddit.com/*"],
 
   "background": {
     "service_worker": "background/service-worker.js"
   },
-
-  "content_scripts": [
-    {
-      "matches": ["*://*.youtube.com/*"],
-      "run_at": "document_start",
-      "all_frames": false,
-      "css": ["packs/youtube.css"],
-      "js": [
-        "core/dom.js",
-        "core/storage.js",
-        "packs/youtube.js",
-        "core/engine.js",
-        "core/behaviours.js",
-        "core/main.js"
-      ]
-    },
-    {
-      "matches": ["*://*.reddit.com/*"],
-      "run_at": "document_start",
-      "all_frames": false,
-      "css": ["packs/reddit.css"],
-      "js": [
-        "core/dom.js",
-        "core/storage.js",
-        "packs/reddit.js",
-        "core/engine.js",
-        "core/behaviours.js",
-        "core/main.js"
-      ]
-    }
-  ],
 
   "options_ui": {
     "page": "options/options.html",

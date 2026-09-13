@@ -245,3 +245,65 @@ for YouTube's 41-feature registry, and impossible for a 6-feature pack to
 pass without every feature being on in every mode. Replaced with a
 relative floor (`on > 0`) plus a distinctness check across a pack's modes,
 which is the invariant the test actually meant to enforce.
+
+## D16 — Optional host permissions, requested per site on first use
+
+**Chosen:** ship with `host_permissions: []`. Every pack's host
+(`*://*.youtube.com/*`, `*://*.reddit.com/*`, …) lives in
+`optional_host_permissions` instead. The popup and options page call
+`chrome.permissions.request({ origins: pack.hosts })` the first time the user
+picks any mode other than Off for that site — that click is the user gesture
+the API requires. `background/pack-scripts.js` reacts to
+`chrome.permissions.onAdded`/`onRemoved` by calling
+`chrome.scripting.registerContentScripts()` / `unregisterContentScripts()`,
+and injects into the active tab immediately on a fresh grant so the user
+doesn't have to manually refresh.
+
+(This was slated to land as D15 — see step 4's Reddit-pack note — but that
+step's own findings needed a number first, so this is D16. Numbers here
+track the order things were actually decided, not a plan written in advance.)
+
+**Rejected: declare every pack's host in `host_permissions` up front.** This
+is what the single-site version did and what most multi-site extensions do —
+one install prompt, nothing to ask for later. Rejected because it defeats the
+entire point of packs being optional: install would ask for YouTube *and*
+Reddit *and* every future pack's access whether or not the user wants that
+site touched, which is exactly the "why does a video-tidying extension want
+my Reddit data" reaction this project exists to avoid causing. It also
+doesn't scale — pack seven means a new review conversation and a scarier
+prompt for users who only wanted pack one.
+
+**Rejected: a separate extension per site.** Keeps each install's permission
+story minimal, but throws away everything steps 2–4 built: one core engine,
+one settings surface, one release process. A user who wants both YouTube and
+Reddit calm would install two extensions with duplicated update mechanics,
+duplicated store listings, and no shared "Peek" or schedule. The pack model
+gets the same minimal-install property without the duplication.
+
+**Cost: the `scripting` permission, genuinely.** Static `content_scripts`
+manifest entries don't need it, but they also don't work here: verified by
+hand that registering a pack via a static manifest entry does not
+retroactively start firing once its optional host permission is granted
+mid-session — Chrome only evaluates static `content_scripts` matches at
+install/browser-start, not against a permission gained afterward, without a
+full reload. `chrome.scripting.registerContentScripts()` is what reacts
+immediately, and it requires `scripting`. This is a genuine addition to the
+permission set (D5 was "storage only"), justified in `docs/PRIVACY.md` and
+`store/LISTING.md`.
+
+**Verified by hand, not by an automated test:** that a granted permission
+plus a registered script actually results in injection. What IS verified —
+directly against the real `chrome.scripting`/`chrome.permissions` APIs in an
+unpacked Chromium load — is that (a) with nothing granted, nothing injects
+anywhere, and (b) registering a script for a host with no grant succeeds but
+still does not inject, which is the property the whole model depends on.
+What can't be automated: `chrome.permissions.request()`'s approval bubble is
+a native browser surface outside the page DOM. A real, CDP-dispatched
+trusted click can start the request, but the promise then hangs waiting for
+a human to click Allow/Deny — confirmed by trying it and watching it hang.
+No CI-safe workaround exists that doesn't involve poking at Chrome's
+undocumented internal profile-preferences schema, which would be exactly the
+kind of fragile, version-coupled machinery this project avoids elsewhere.
+See `tests/permissions.spec.js` (stubbed logic) and `tests/extension.spec.js`
+(the same logic against the real API, plus the "nothing injects without a
+grant" guarantee) for what's covered instead.

@@ -35,6 +35,17 @@
         b.title = MODE_META[m].blurb;
         b.setAttribute('aria-checked', String(m === active));
         b.onclick = async () => {
+          // D16: the pack is inert until its host permission is granted.
+          // Ask the first time the user picks anything other than Off — the
+          // service worker's chrome.permissions.onAdded listener registers
+          // and injects the pack once granted; this only needs to ask.
+          if (m !== 'off') {
+            const already = await chrome.permissions.contains({ origins: pack.hosts });
+            if (!already) {
+              const granted = await chrome.permissions.request({ origins: pack.hosts }).catch(() => false);
+              if (!granted) return; // declined — leave the mode untouched
+            }
+          }
           site.mode = m;
           await persistSite();
           renderAll();

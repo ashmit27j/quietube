@@ -15,6 +15,8 @@ const manifest = JSON.parse(readFileSync(new URL('../src/manifest.json', import.
 globalThis.chrome = { storage: { sync: { get: async () => ({}), set: async () => {} } } };
 new Function(readFileSync(new URL('../src/core/storage.js', import.meta.url), 'utf8'))();
 new Function(coreBehavioursSrc)();
+new Function(readFileSync(new URL('../src/background/pack-scripts.js', import.meta.url), 'utf8'))();
+const { QS_PACKS } = globalThis.QSBackground;
 
 const allDeclaredHandlers = new Set();
 
@@ -106,9 +108,14 @@ for (const id of PACK_IDS) {
       ).toBe(false);
     });
 
-    test('manifest declares this pack its own content_scripts entry', () => {
-      const entry = manifest.content_scripts.find((cs) => (cs.js || []).some((f) => f === `packs/${id}.js`));
-      expect(entry, `no content_scripts entry loads packs/${id}.js`).toBeTruthy();
+    test('pack-scripts.js registers this pack with the right hosts and load order', () => {
+      // D16: packs no longer have a static content_scripts manifest entry —
+      // they're registered dynamically once their host permission is granted
+      // (see background/pack-scripts.js and docs/DECISIONS.md D16), so this
+      // is the file that has to agree with the pack on hosts and load order.
+      const entry = QS_PACKS.find((p) => p.id === id);
+      expect(entry, `pack-scripts.js has no QS_PACKS entry for "${id}"`).toBeTruthy();
+      expect(entry.matches, `pack-scripts.js's hosts for "${id}" must match the pack's own`).toEqual(pack.hosts);
 
       const js = entry.js;
       expect(js[0], 'core/dom.js must load first').toBe('core/dom.js');
@@ -116,7 +123,6 @@ for (const id of PACK_IDS) {
       expect(js.indexOf(`packs/${id}.js`)).toBeLessThan(js.indexOf('core/engine.js'));
       expect(js.indexOf('core/engine.js')).toBeLessThan(js.indexOf('core/behaviours.js'));
       expect(js.at(-1), 'core/main.js must load last').toBe('core/main.js');
-      expect(entry.run_at, 'must be document_start for the no-flash path').toBe('document_start');
     });
   });
 }
@@ -128,10 +134,20 @@ test('no orphan handlers in core/behaviours.js', () => {
   }
 });
 
-test('manifest stays minimal', () => {
+test('manifest stays minimal — zero host permissions up front (D16)', () => {
   expect(manifest.manifest_version).toBe(3);
-  expect(manifest.permissions, 'permissions must stay at storage only (decision D5)').toEqual(['storage']);
-  expect(manifest.host_permissions).toEqual(['*://*.youtube.com/*']);
+  expect(
+    manifest.permissions,
+    'storage + scripting only — scripting is what dynamic per-pack registration costs (D16)'
+  ).toEqual(['storage', 'scripting']);
+  expect(manifest.host_permissions, 'nothing granted at install — see D16').toEqual([]);
+  expect(manifest.content_scripts, 'packs register dynamically now; no static content_scripts entry').toBeUndefined();
+  for (const id of PACK_IDS) {
+    expect(
+      manifest.optional_host_permissions,
+      `optional_host_permissions must list every pack's host (missing ${id})`
+    ).toEqual(expect.arrayContaining(QS_PACKS.find((p) => p.id === id).matches));
+  }
   expect(/^\d+\.\d+\.\d+$/.test(manifest.version)).toBe(true);
 });
 
@@ -157,7 +173,7 @@ test('no network code anywhere in src', () => {
   const files = [
     'core/dom.js', 'core/storage.js', 'core/engine.js', 'core/behaviours.js', 'core/main.js',
     ...PACK_IDS.map((id) => `packs/${id}.js`),
-    'background/service-worker.js', 'options/options.js', 'popup/popup.js',
+    'background/service-worker.js', 'background/pack-scripts.js', 'options/options.js', 'popup/popup.js',
   ];
   for (const f of files) {
     const src = readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');

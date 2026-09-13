@@ -6,35 +6,39 @@ description: Manifest V3 rules and gotchas that specifically bite this extension
 # MV3 conventions for this project
 
 ## Content scripts are classic scripts
-They cannot use `import`/`export`. That is why `registry.js` publishes
-`globalThis.QT` and why the `content_scripts.js` array order is load-bearing:
+They cannot use `import`/`export`. That is why every pack publishes
+`globalThis.QS` and why a pack's load order (registered in
+`background/pack-scripts.js`'s `QS_PACKS`) is load-bearing:
 
 ```
-lib/registry.js → lib/storage.js → content/css-engine.js → content/behaviours.js → content/main.js
+core/dom.js → core/storage.js → packs/<id>.js → core/engine.js → core/behaviours.js → core/main.js
 ```
 
 Reordering these breaks the extension silently — a later file will read an
-undefined property off `QT`. If you add a file, insert it in dependency order
-and say why in the manifest diff.
+undefined property off `QS`. If you add a file, insert it in dependency order
+and say why in the `pack-scripts.js` diff (there is no manifest
+`content_scripts` array to diff any more — see Permissions below).
 
-The **service worker** may be a module (`"type": "module"`), and the options
-and popup pages load the same files via `<script src>` tags. Keep every shared
-file working as a classic script so all three contexts can use it.
+The **service worker** is a classic script too (`importScripts`, not
+`"type": "module"`), and the options and popup pages load the same core/pack
+files via `<script src>` tags. Keep every shared file working as a classic
+script so all three contexts can use it.
 
 ## Content scripts run in an isolated world
-Your content script gets its own JS global scope. `globalThis.QT` is **not**
-visible to YouTube's own scripts, and YouTube's globals are not visible to you —
-though you share the DOM, and you share `localStorage` on the page origin (which
-is exactly what the no-flash cache relies on).
+Your content script gets its own JS global scope. `globalThis.QS` is **not**
+visible to the page's own scripts, and the page's globals are not visible to
+you — though you share the DOM, and you share `localStorage` on the page
+origin (which is exactly what the no-flash cache relies on).
 
 Consequences that bite:
-- You cannot call YouTube's internal player API directly. Reach the player
-  through the DOM (`document.querySelector('video.html5-main-video')`) or by
-  clicking its controls, as `forceAutoplayOff` does.
-- Any Playwright test that does `page.evaluate(() => globalThis.QT)` gets
-  `undefined`. Assert on effects instead: the `data-qt-page` stamp, the
-  `#qt-style` element, the localStorage cache. `tests/extension.spec.js` asserts
-  the isolation explicitly so a leak into the page fails loudly.
+- You cannot call a site's internal player API directly. Reach a `<video>`
+  through the DOM or by clicking its controls, as YouTube's
+  `forceAutoplayOff` does.
+- Any Playwright test that does `page.evaluate(() => globalThis.QS)` gets
+  `undefined`. Assert on effects instead: the `data-qs-page`/`data-qs-site`
+  stamps, the `#qs-style` element, the localStorage cache.
+  `tests/extension.spec.js` asserts the isolation explicitly so a leak into
+  the page fails loudly.
 - This isolation is a security property worth keeping. Do not inject a script
   tag into the page to escape it.
 
@@ -63,13 +67,22 @@ It is terminated after ~30s idle and restarted on demand. Therefore:
   sync, and `chrome.storage.sync` is then `undefined`, not merely empty.
 
 ## Permissions
-Current set is `storage` + `host_permissions: ["*://*.youtube.com/*"]` and it
-stays that way (decision D5). Specifically:
+`storage` + `scripting`, with `host_permissions: []` — every pack's host
+lives in `optional_host_permissions` and is requested on first use (D16).
+Specifically:
 - Redirects are done with `location.replace` in the content script, **not**
   `chrome.tabs.update` — no `tabs` permission needed.
 - The options page is opened with `chrome.runtime.openOptionsPage()` — no
   `tabs` permission needed.
-- Do not add `scripting`; everything is declared in `content_scripts`.
+- There is no static `content_scripts` manifest entry any more — a pack's
+  scripts are registered dynamically via `chrome.scripting
+  .registerContentScripts()` once its host permission is granted (see
+  `background/pack-scripts.js`), which is what costs `scripting`. A static
+  entry doesn't retroactively fire once a permission is granted mid-session.
+- `chrome.permissions.request()` must be called from a user gesture in a
+  foreground page (popup or options), never from the service worker, and its
+  approval UI is a native browser surface no automated test can click
+  through — see D16.
 - `commands` in the manifest is a *manifest key*, not a permission — keyboard
   shortcuts are free.
 
@@ -80,15 +93,19 @@ referenced by `src`. No CDN links anywhere.
 
 ## Testing an unpacked reload
 Changing a content script requires: reload the extension card **and** hard
-reload the YouTube tab. Changing the service worker requires a card reload
-only. Changing the manifest requires a card reload; `chrome://extensions` will
-show the parse error inline if the JSON is malformed — check there first when
-"nothing happens".
+reload a tab on that pack's site. Changing the service worker requires a card
+reload only — that also re-runs `background/pack-scripts.js`'s sync, so it's
+the fastest way to pick up a `QS_PACKS` edit. Changing the manifest requires a
+card reload; `chrome://extensions` will show the parse error inline if the
+JSON is malformed — check there first when "nothing happens". If a pack you
+already granted stops responding after an edit, check
+`chrome.scripting.getRegisteredContentScripts()` from the service worker's
+console — a stale registration from before the edit can outlive a card reload.
 
 ## Chrome Web Store review implications
 - Minified or obfuscated code triggers a slower manual review. This project
   ships readable source deliberately (D1).
-- The single purpose declaration must match what the code does. Ours is
-  "hide user-selected parts of the YouTube interface".
+- The single purpose declaration must match what the code does — currently
+  "hide user-selected distracting parts of supported sites' interfaces".
 - Every requested permission needs a one-line justification in the dashboard;
-  keep the text in `docs/STORE_LISTING.md` in sync with the manifest.
+  keep the text in `store/LISTING.md` in sync with the manifest.

@@ -16,18 +16,30 @@ const check = (cond, msg, level = 'fail') =>
   cond ? ok.push(msg) : (level === 'fail' ? fails : warns).push(msg);
 
 // ── manifest ──────────────────────────────────────────────────────────────
+// D16: every site is an optional_host_permissions grant, requested on first
+// use — host_permissions must stay empty and permissions must stay exactly
+// storage + scripting (scripting is what dynamic per-pack registration
+// costs; see background/pack-scripts.js). See DECISIONS.md D16 (supersedes
+// D5's single-permission-set framing, kept for the "why so few" reasoning).
 const manifest = JSON.parse(readFileSync(join(root, 'src/manifest.json'), 'utf8'));
 check(manifest.manifest_version === 3, 'manifest_version is 3');
 check(
-  JSON.stringify(manifest.permissions) === JSON.stringify(['storage']),
-  `permissions are exactly ["storage"] (found ${JSON.stringify(manifest.permissions)}) — see DECISIONS.md D5`
+  JSON.stringify(manifest.permissions) === JSON.stringify(['storage', 'scripting']),
+  `permissions are exactly ["storage","scripting"] (found ${JSON.stringify(manifest.permissions)}) — see DECISIONS.md D16`
 );
 check(
-  JSON.stringify(manifest.host_permissions) === JSON.stringify(['*://*.youtube.com/*']),
-  'host_permissions are youtube.com only'
+  Array.isArray(manifest.host_permissions) && manifest.host_permissions.length === 0,
+  `host_permissions is empty — every site is optional (found ${JSON.stringify(manifest.host_permissions)})`
+);
+check(
+  Array.isArray(manifest.optional_host_permissions) && manifest.optional_host_permissions.length > 0,
+  'optional_host_permissions lists at least one pack host'
 );
 check(/^\d+\.\d+\.\d+$/.test(manifest.version), `version "${manifest.version}" is semver`);
-check(manifest.content_scripts[0].run_at === 'document_start', 'content scripts run at document_start');
+check(
+  manifest.content_scripts === undefined,
+  'no static content_scripts entry — packs register dynamically via chrome.scripting (D16)'
+);
 
 // ── icons ─────────────────────────────────────────────────────────────────
 for (const size of [16, 32, 48, 128]) {

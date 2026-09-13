@@ -61,7 +61,7 @@ Every other blocker shows you the full homepage for a split second before hiding
 
 ━━ PRIVACY ━━
 
-One permission: storage, to save your settings. Access to youtube.com only.
+Installs with zero site access. Turning on a site for the first time asks Chrome's own permission prompt for that site, and only that site — nothing is granted up front.
 
 No analytics. No telemetry. No account. No server. There is not a single network request in the code, and the source is public and unminified so you can check that yourself.
 
@@ -78,11 +78,17 @@ Not affiliated with YouTube or Google. YouTube is a trademark of Google LLC.
 
 ## Permission justifications
 
+D16 moved every site to an optional, requested-on-first-use host permission
+— `host_permissions` is empty at install, and both site permissions below
+are `optional_host_permissions`.
+
 | Field | Text |
 |---|---|
-| Single purpose | Hide user-selected parts of the YouTube web interface so the user can watch without recommendations, Shorts, comments and other distractions. |
-| `storage` | Stores the user's own toggle settings and selected mode. No other data is stored. |
-| Host permission `*://*.youtube.com/*` | The extension modifies only the appearance of youtube.com pages. It needs a content script there to apply the user's hiding preferences. |
+| Single purpose | Hide user-selected distracting parts of supported sites' web interfaces (currently YouTube and Reddit), per site and per user preference. |
+| `storage` | Stores the user's own toggle settings and selected mode, per site. No other data is stored. |
+| `scripting` | Lets a site's hiding rules start applying immediately after the user grants that site, instead of waiting for a tab reload or browser restart. Only used for sites the user has already been asked about and approved. |
+| Optional host permission `*://*.youtube.com/*` | Requested only when the user turns on the YouTube pack. The extension modifies only the appearance of youtube.com pages. |
+| Optional host permission `*://*.reddit.com/*` | Requested only when the user turns on the Reddit pack. The extension modifies only the appearance of reddit.com pages. |
 | Remote code | No. All code is included in the package. |
 | Data collection | None, in every category. |
 

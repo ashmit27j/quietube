@@ -21,6 +21,19 @@
         b.textContent = MODE_META[m].label;
         b.setAttribute('aria-checked', String(m === active));
         b.addEventListener('click', async () => {
+          // D16: the pack is inert until its host permission is granted.
+          // Ask the first time the user picks anything other than Off — this
+          // click is the user gesture chrome.permissions.request() requires.
+          // The service worker's chrome.permissions.onAdded listener (see
+          // background/service-worker.js) handles registering and injecting
+          // the pack once granted; this file only needs to ask.
+          if (m !== 'off') {
+            const already = await chrome.permissions.contains({ origins: pack.hosts });
+            if (!already) {
+              const granted = await chrome.permissions.request({ origins: pack.hosts }).catch(() => false);
+              if (!granted) return; // declined — leave the mode untouched
+            }
+          }
           site.mode = m;
           await QS.storage.save({ sites: cfg.sites, peekUntil: 0 });
           render();

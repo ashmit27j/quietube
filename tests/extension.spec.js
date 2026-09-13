@@ -1,16 +1,23 @@
 /**
- * End-to-end: load the real unpacked extension into Chromium and check that
- * it boots and injects on both a youtube.com and a reddit.com page.
+ * End-to-end: load the real unpacked extension into Chromium and check the
+ * things that are only true of the REAL manifest + REAL load mechanism —
+ * not testable by feeding source files straight to a page, which is what
+ * tests/engine.spec.js does for the CSS engine and page-classification logic
+ * itself (those tests are permission-agnostic, since they never go through
+ * the extension's actual loading pipeline).
  *
- * The page is served locally by Playwright route fulfillment, so this needs no
- * network — but the ORIGIN is real, which is what makes the manifest's
- * content_scripts match fire. This is the strongest check available offline:
- * it validates the manifest, the content script load order, the service
- * worker, the storage round-trip, and (since the Reddit pack) that each
- * pack's content_scripts entry fires only on its own host.
+ * Since D16 (optional host permissions), that pipeline's headline property
+ * is that NOTHING injects until a host permission is granted — a fresh
+ * install must be near-empty. This file's job is mostly to prove that.
  *
- * Selector accuracy against a site's actual markup is a separate concern —
- * see tests/selectors.spec.js (YouTube; Reddit has none yet, see D15).
+ * What this file does NOT and cannot cover: the actual interactive
+ * chrome.permissions.request() grant flow. It's a native browser UI surface
+ * outside the page DOM; Playwright can dispatch a real, trusted click to
+ * *start* the request, but the approve/deny bubble itself cannot be reached
+ * from here (confirmed by hand — the request hangs waiting for a human).
+ * See docs/DECISIONS.md D16 and tests/permissions.spec.js for what IS
+ * covered instead (the registration logic, stubbed and — below — against the
+ * real chrome.scripting API).
  */
 import { test, expect, chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
@@ -41,12 +48,29 @@ test.beforeAll(async () => {
   await ctx.route('**/*', (route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: SHELL })
   );
+
+  // onInstalled opens the options page in its own tab (open_in_tab: true).
+  // Left racing with this file's own ctx.newPage() calls, that auto-opened
+  // navigation can interrupt an unrelated page's goto() — let it settle and
+  // close it before any test starts.
+  await getServiceWorker();
+  const auto = await ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);
+  if (auto) {
+    await auto.waitForLoadState('load').catch(() => {});
+    await auto.close().catch(() => {});
+  }
 });
 
 test.afterAll(async () => {
   await ctx?.close();
   if (userDataDir) rmSync(userDataDir, { recursive: true, force: true });
 });
+
+async function getServiceWorker() {
+  let sw = ctx.serviceWorkers()[0];
+  if (!sw) sw = await ctx.waitForEvent('serviceworker', { timeout: 10_000 });
+  return sw;
+}
 
 test('the extension loads without a manifest error', async () => {
   // A manifest Chrome refuses to parse means no service worker is ever
@@ -58,112 +82,73 @@ test('the extension loads without a manifest error', async () => {
   await page.close();
 });
 
-test('content scripts run, and stay invisible to the page', async () => {
+test('onInstalled seeds schema-2 defaults with zero sites and masterEnabled true', async () => {
+  const sw = await getServiceWorker();
+  const stored = await sw.evaluate(() => (chrome.storage.sync || chrome.storage.local).get(null));
+  expect(stored.schema).toBe(2);
+  expect(stored.masterEnabled).toBe(true);
+  expect(stored.sites).toEqual({});
+});
+
+test('install grants no host permissions — optional_host_permissions stays optional', async () => {
+  const sw = await getServiceWorker();
+  const granted = await sw.evaluate(() => chrome.permissions.getAll());
+  expect(granted.origins, 'a near-empty install must request nothing up front').toEqual([]);
+  expect(granted.permissions).toEqual(expect.arrayContaining(['storage', 'scripting']));
+});
+
+test('with zero permissions granted, neither pack injects on its own host', async () => {
+  const yt = await ctx.newPage();
+  await yt.goto('https://www.youtube.com/');
+  await yt.waitForTimeout(800);
+  expect(
+    await yt.evaluate(() => document.documentElement.getAttribute('data-qs-page')),
+    'the YouTube pack must not run before its host permission is granted'
+  ).toBeNull();
+  await yt.close();
+
+  const rd = await ctx.newPage();
+  await rd.goto('https://www.reddit.com/');
+  await rd.waitForTimeout(800);
+  expect(
+    await rd.evaluate(() => document.documentElement.getAttribute('data-qs-site')),
+    'the Reddit pack must not run before its host permission is granted'
+  ).toBeNull();
+  await rd.close();
+});
+
+test('pack-scripts.js registers and unregisters against the real chrome.scripting API', async () => {
+  const sw = await getServiceWorker();
+
+  expect(await sw.evaluate(() => chrome.scripting.getRegisteredContentScripts())).toEqual([]);
+
+  await sw.evaluate(() => registerPackScripts('youtube'));
+  const afterRegister = await sw.evaluate(() => chrome.scripting.getRegisteredContentScripts());
+  expect(afterRegister.map((r) => r.id)).toEqual(['youtube']);
+  expect(afterRegister[0].matches).toEqual(['*://*.youtube.com/*']);
+
+  // Registering without an actual granted host permission must not cause
+  // injection — that's the whole property this permission model relies on.
   const page = await ctx.newPage();
   await page.goto('https://www.youtube.com/');
   await page.waitForTimeout(800);
-
-  // Content scripts live in an ISOLATED WORLD, so page.evaluate (which runs in
-  // the page's main world) cannot see globalThis.QS. That is the correct and
-  // desirable behaviour — YouTube's own scripts cannot read or tamper with our
-  // state — so we assert the isolation holds, and prove the scripts ran by
-  // their effects instead.
-  const leaked = await page.evaluate(() => typeof globalThis.QS);
-  expect(leaked, 'QS must not be reachable from the page main world').toBe('undefined');
-
-  // Effects visible across the world boundary: the stamp, the stylesheet, and
-  // the shared localStorage cache. All three require every content script in
-  // the load order to have executed successfully.
-  const proof = await page.evaluate(() => ({
-    stamp: document.documentElement.getAttribute('data-qs-page'),
-    styleEl: !!document.getElementById('qs-style'),
-    cache: (() => { try { return !!localStorage.getItem('qs:flags:v1'); } catch { return false; } })(),
-  }));
-
-  expect(proof.stamp, 'core/main.js did not run').toBe('home');
-  expect(proof.styleEl, 'core/engine.js did not run').toBe(true);
-  expect(proof.cache, 'core/storage.js / core/main.js did not complete the reconcile').toBe(true);
+  expect(
+    await page.evaluate(() => document.documentElement.getAttribute('data-qs-page')),
+    'registerContentScripts alone (no grant) must not be enough to inject'
+  ).toBeNull();
   await page.close();
+
+  await sw.evaluate(() => unregisterPackScripts('youtube'));
+  expect(await sw.evaluate(() => chrome.scripting.getRegisteredContentScripts())).toEqual([]);
 });
 
-test('the page is stamped with its type and a stylesheet is injected', async () => {
-  const page = await ctx.newPage();
-  await page.goto('https://www.youtube.com/');
-  await page.waitForTimeout(800);
-
-  expect(await page.getAttribute('html', 'data-qs-page')).toBe('home');
-  const css = await page.evaluate(() => document.getElementById('qs-style')?.textContent ?? null);
-  expect(css, 'no stylesheet element was injected').not.toBeNull();
-  await page.close();
-});
-
-test('the default mode actually hides the home feed', async () => {
-  const page = await ctx.newPage();
-  await page.goto('https://www.youtube.com/');
-  await page.waitForTimeout(800);
-
-  const display = await page.evaluate(
-    () => getComputedStyle(document.querySelector('ytd-rich-grid-renderer')).display
-  );
-  expect(display, 'Casual is the install default and must hide the home grid').toBe('none');
-  await page.close();
-});
-
-test('the flags cache is written for the next cold load', async () => {
-  const page = await ctx.newPage();
-  await page.goto('https://www.youtube.com/');
-  await page.waitForTimeout(800);
-
-  const cached = await page.evaluate(() => {
-    try { return JSON.parse(localStorage.getItem('qs:flags:v1')); } catch { return null; }
-  });
-  expect(cached, 'without this cache every cold load flashes the feed').not.toBeNull();
-  expect(cached.home_feed).toBe(true);
-  await page.close();
-});
-
-test('the Reddit pack loads on reddit.com', async () => {
-  const page = await ctx.newPage();
-  await page.goto('https://www.reddit.com/');
-  await page.waitForTimeout(800);
-
-  const stamp = await page.evaluate(() => ({
-    site: document.documentElement.getAttribute('data-qs-site'),
-    styleEl: !!document.getElementById('qs-style'),
-  }));
-  expect(stamp.site, 'packs/reddit.js did not stamp data-qs-site').toBe('reddit');
-  expect(stamp.styleEl, 'core/engine.js did not run on reddit.com').toBe(true);
-  await page.close();
-});
-
-test('the YouTube pack does not also fire on reddit.com', async () => {
-  const page = await ctx.newPage();
-  await page.goto('https://www.reddit.com/');
-  await page.waitForTimeout(800);
-
-  // The mocked SHELL body is YouTube-shaped markup regardless of which host
-  // is requested (route fulfillment doesn't vary by URL). If the YouTube
-  // pack's content script matched reddit.com too, its home_feed rule would
-  // hide ytd-rich-grid-renderer here. It must not — only packs/reddit.js's
-  // own content_scripts entry should match this host (each pack loads only
-  // on its own host).
-  const display = await page.evaluate(() => {
-    const el = document.querySelector('ytd-rich-grid-renderer');
-    return el ? getComputedStyle(el).display : 'not-present';
-  });
-  expect(display, 'the YouTube pack must not run on reddit.com').not.toBe('none');
-  await page.close();
-});
-
-test('no console errors from our code', async () => {
-  const page = await ctx.newPage();
+test('no console errors from the service worker', async () => {
+  const sw = await getServiceWorker();
   const errors = [];
-  page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => {
-    if (m.type() === 'error' && /quietsurf|qs-|registry|behaviour/i.test(m.text())) errors.push(m.text());
+  sw.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
   });
-  await page.goto('https://www.youtube.com/');
-  await page.waitForTimeout(1200);
+  await sw.evaluate(() => syncRegisteredScripts());
+  await new Promise((r) => setTimeout(r, 300));
   expect(errors).toEqual([]);
-  await page.close();
 });
