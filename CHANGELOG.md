@@ -15,17 +15,16 @@ history is preserved on the `quietube` branch/tag for reference.
   D15 for what it found, including one real core/pack boundary correction
   (`collapseWithReveal` moved into `core/dom.js`).
 - Storage schema 2: `masterEnabled` kill switch, settings nested per site
-  under `sites[pack.id]`, and a per-site `quick` toggle list for the popup.
-  Schema 1 → 2 migration included.
+  under `sites[pack.id]`. Schema 1 → 2 migration included.
 - Permissions redesigned around opt-in-per-site (D16): `host_permissions` is
   now empty and every pack's host is an `optional_host_permissions` entry,
   requested only the first time a user turns that site on. Costs `scripting`
   (dynamic per-pack content-script registration) and `activeTab` (so the
   popup can tell which site a tab is on before any permission is granted).
 - Popup rebuilt around progressive disclosure: a master switch and the
-  current site's name always show; a supported site gets its mode picker and
-  quick toggles, an unsupported one gets a link to request a pack instead of
-  an empty control. Options page now renders one card per known pack.
+  current site's name always show; a supported site gets its mode picker, an
+  unsupported one gets a link to request a pack instead of an empty control.
+  Options page now renders one card per known pack.
 - Renamed YouTube's `casual`/`study` modes to the generic `light`/
   `deep_focus` every pack now shares (`music` stays YouTube-only); a pack can
   declare `modeAliases` so a config saved under the old name keeps resolving

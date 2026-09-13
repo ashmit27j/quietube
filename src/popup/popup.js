@@ -19,7 +19,6 @@
   const unsupportedView = document.getElementById('unsupported-view');
   const modesEl = document.getElementById('modes');
   const blurbEl = document.getElementById('blurb');
-  const quickEl = document.getElementById('quick');
   const peekEl = document.getElementById('peek');
   const requestPackEl = document.getElementById('request-pack');
 
@@ -43,46 +42,6 @@
   function openOptions() {
     chrome.runtime.openOptionsPage();
     window.close();
-  }
-
-  function renderQuick(currentMode) {
-    quickEl.replaceChildren();
-    const ids = site.quick || [];
-    if (!ids.length) {
-      const p = document.createElement('p');
-      p.className = 'empty';
-      const link = document.createElement('a');
-      link.href = '#';
-      link.textContent = 'Settings';
-      link.addEventListener('click', (e) => { e.preventDefault(); openOptions(); });
-      p.append('No quick toggles yet — add some from ', link, '.');
-      quickEl.append(p);
-      return;
-    }
-
-    const { flags } = QS.storage.resolve(cfg, Date.now(), activePack);
-    for (const id of ids) {
-      const f = activePack.features.find((x) => x.id === id);
-      if (!f) continue; // a quick id whose feature no longer exists — skip quietly
-
-      const row = document.createElement('div');
-      row.className = 'row';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.id = `quick-${id}`;
-      input.checked = !!flags[id];
-      input.addEventListener('change', async () => {
-        site.overrides = site.overrides || {};
-        site.overrides[id] = input.checked;
-        await QS.storage.save({ sites: cfg.sites });
-        render();
-      });
-      const label = document.createElement('label');
-      label.htmlFor = input.id;
-      label.textContent = f.label;
-      row.append(input, label);
-      quickEl.append(row);
-    }
   }
 
   async function onPickMode(m) {
@@ -138,8 +97,6 @@
     if (cfg.schedule?.enabled && active !== site.mode) {
       blurbEl.textContent = `Scheduled: ${MODE_META[active].label} is active right now. ${MODE_META[active].blurb}`;
     }
-
-    renderQuick(active);
 
     const peeking = (cfg.peekUntil || 0) > Date.now();
     peekEl.dataset.active = peeking ? '1' : '0';

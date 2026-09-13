@@ -13,7 +13,6 @@
  *       mode: 'off' | <pack mode name> | 'custom',
  *       custom: { [featureId]: boolean },    // only used when mode === 'custom'
  *       overrides: { [featureId]: boolean }, // per-feature overrides layered on ANY mode
- *       quick: [featureId],                  // toggles promoted to the popup for this site
  *     },
  *   },
  *   schedule: { enabled, rules: [{ days:[0-6], from:'HH:MM', to:'HH:MM', mode }] },
@@ -48,7 +47,7 @@
 
   /** A freshly-seen site's settings: its own baseline mode, nothing overridden yet. */
   function siteDefaults(pack) {
-    return { mode: pack.customBaseMode, custom: {}, overrides: {}, quick: [] };
+    return { mode: pack.customBaseMode, custom: {}, overrides: {} };
   }
 
   /** Every feature's on/off default for one mode, from the pack's own data. */
@@ -110,7 +109,6 @@
           mode: cfg.mode || pack.customBaseMode,
           custom: cfg.custom || {},
           overrides: cfg.overrides || {},
-          quick: [],
         };
       }
       delete cfg.mode;

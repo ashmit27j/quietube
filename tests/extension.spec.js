@@ -225,28 +225,6 @@ test.describe('popup and options pages (step 6 progressive disclosure)', () => {
     await page.close();
   });
 
-  test('the quick-star toggle adds and removes a feature from sites[id].quick', async () => {
-    const page = await ctx.newPage();
-    await page.goto(await extensionUrl('options/options.html'));
-    await page.waitForTimeout(600);
-
-    // Site cards collapse their toggle list by default — expand the first
-    // one before the quick-star (inside it) can be interacted with.
-    await page.locator('.expand-btn').first().click();
-    await page.waitForTimeout(200);
-
-    const star = page.locator('.quick-star').first();
-    await expect(star).toHaveAttribute('aria-pressed', 'false');
-    await star.click();
-    await page.waitForTimeout(300);
-    await expect(star).toHaveAttribute('aria-pressed', 'true');
-
-    const sw = await getServiceWorker();
-    const stored = await sw.evaluate(() => (chrome.storage.sync || chrome.storage.local).get(null));
-    expect(stored.sites.youtube.quick).toContain('home_feed'); // first feature in the first group
-    await page.close();
-  });
-
   test('popup renders without console errors regardless of which site is detected', async () => {
     // This environment cannot make chrome.tabs.query reveal a real tab URL
     // from the popup (activeTab only activates on a genuine action-icon

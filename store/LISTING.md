@@ -105,7 +105,7 @@ are `optional_host_permissions`.
 ## Screenshots (1280×800) — shoot in this order
 
 1. **Side by side**: default YouTube home vs QuietSurf Deep Focus mode. This is the thumbnail; it has to land in one glance.
-2. **Popup open** over a watch page, showing the mode buttons and quick toggles.
+2. **Popup open** over a watch page, showing the mode buttons.
 3. **Options page**, scrolled to show both site cards and the breadth of toggles.
 4. **Watch page**, sidebar gone, player widened.
 5. **Text callout**: "Free forever. No account. Nothing granted until you say so." — leads with the permission story, which is the thing no competitor can copy without a rewrite.

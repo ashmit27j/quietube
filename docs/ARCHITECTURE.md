@@ -165,8 +165,7 @@ half-added.
     "youtube": {
       "mode": "deep_focus",
       "custom": { "home_feed": true },
-      "overrides": { "comments_hide": true },
-      "quick": ["watch_sidebar", "comments_collapse", "shorts_shelf"]
+      "overrides": { "comments_hide": true }
     }
   },
   "schedule": { "enabled": true, "rules": [
@@ -184,7 +183,7 @@ and `peekUntil` are deliberately NOT per-site: one set of time windows or one
 peek applies across every site at once.
 
 This is schema 2. Schema 1 was the same shape flattened at the top level for
-a single site, with no `masterEnabled` or `quick`. The schema 1 → 2 migration
+a single site, with no `masterEnabled`. The schema 1 → 2 migration
 in `core/storage.js → migrate()` wraps the old flat `mode`/`custom`/
 `overrides` under `sites[pack.id]`. Never rename a registry `id`; add a new
 one and migrate the old key.

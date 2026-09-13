@@ -193,7 +193,6 @@ test.describe('schema 1 -> 2 migration', () => {
       mode: 'study',
       custom: { view_count: true },
       overrides: { home_feed: false },
-      quick: [],
     });
     expect(cfg.mode, 'the flat legacy key must not survive migration').toBeUndefined();
     expect(cfg.custom).toBeUndefined();
@@ -261,7 +260,7 @@ test.describe('multi-pack contexts (popup/options load more than one pack)', () 
   test('resolve()/activeMode() accept an explicit pack, for a page with several loaded', () => {
     const redditPack = loadReddit();
     const cfg = base();
-    cfg.sites.reddit = { mode: 'deep_focus', custom: {}, overrides: {}, quick: [] };
+    cfg.sites.reddit = { mode: 'deep_focus', custom: {}, overrides: {} };
     expect(QS.storage.activeMode(cfg, Date.now(), redditPack)).toBe('deep_focus');
     const { flags } = QS.storage.resolve(cfg, Date.now(), redditPack);
     expect(flags.right_sidebar, 'reddit deep_focus should hide the right sidebar').toBe(true);

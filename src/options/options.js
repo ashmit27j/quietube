@@ -12,7 +12,6 @@
 
   const $ = (id) => document.getElementById(id);
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const QUICK_MAX = 5;
 
   // Which site cards are expanded. Not persisted — every card starts
   // collapsed on open, and this only needs to survive re-renders triggered
@@ -185,24 +184,6 @@
           row.className = 'feat';
           row.dataset.overridden = f.id in (site.overrides || {}) ? '1' : '0';
 
-          const quick = site.quick || [];
-          const isQuick = quick.includes(f.id);
-          const star = document.createElement('button');
-          star.type = 'button';
-          star.className = 'quick-star';
-          star.setAttribute('aria-pressed', String(isQuick));
-          star.title = isQuick
-            ? 'Remove from the popup\'s quick toggles'
-            : `Add to the popup's quick toggles (up to ${QUICK_MAX})`;
-          star.textContent = isQuick ? '★' : '☆';
-          star.disabled = !isQuick && quick.length >= QUICK_MAX;
-          star.onclick = async () => {
-            site.quick = site.quick || [];
-            site.quick = isQuick ? site.quick.filter((id) => id !== f.id) : [...site.quick, f.id].slice(0, QUICK_MAX);
-            await persistSites();
-            renderAll();
-          };
-
           const sw = document.createElement('label');
           sw.className = 'sw';
           const input = document.createElement('input');
@@ -241,7 +222,7 @@
           desc.textContent = f.desc;
           txt.append(label, desc);
 
-          row.append(star, sw, txt);
+          row.append(sw, txt);
           block.append(row);
         }
         groupsHost.append(block);
@@ -345,7 +326,7 @@
   for (const pack of packs) {
     const chip = document.createElement('span');
     chip.className = 'backup-chip';
-    chip.append(renderLogo(pack), document.createTextNode(pack.label));
+    chip.append(document.createTextNode(pack.label));
     backupSitesHost.append(chip);
   }
 

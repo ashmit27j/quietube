@@ -412,3 +412,31 @@ If a future reviewer or maintainer wants a stricter line, D18's version
 `renderLogo()` fallback path) is still the code path for any pack with no
 entry in `ICON_SVG` — reverting is deleting three map entries, not
 restructuring anything.
+
+## D20 — removed the popup's quick-toggle feature (the options page "star")
+
+Requested directly ("remove the stars feature"), no reason given, so none is
+invented here — this entry exists so a future contributor doesn't wonder
+whether `sites[id].quick` disappearing from schema 2 was an oversight.
+
+Removed end to end rather than leaving a dead half:
+- The ★/☆ button next to each feature row in `src/options/options.js`
+  (`quick-star`, `QUICK_MAX`) — this was the only way to populate a site's
+  `quick` list.
+- The popup's "quick toggles" block that read that list
+  (`src/popup/popup.js`'s `renderQuick`, `#quick` in `popup.html`, `.quick`
+  in `popup.css`) — with no way left to populate it, leaving it in would
+  mean every popup permanently shows the "no quick toggles yet" empty state.
+- The `quick` field itself from the schema-2 shape (`core/storage.js`'s
+  `siteDefaults()`, its schema-1→2 `migrate()`, and the doc comment at the
+  top of that file) and from `background/service-worker.js`'s duplicated
+  fallback site shape.
+
+A site record written before this change may still have a stored `quick`
+array in `chrome.storage.sync` — harmless, since nothing reads that key
+anymore; no migration was added to strip it, matching how this project
+doesn't retroactively clean up dead keys elsewhere (`peekUntil` etc. would
+get the same treatment if ever removed).
+
+The popup's mode picker and Peek stay exactly as they were; this only
+removes the quick-toggle promotion mechanism layered on top of them.
