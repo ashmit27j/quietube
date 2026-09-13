@@ -2,6 +2,15 @@
   color-scheme: light dark;
   --bg:#fafafa; --card:#fff; --fg:#0f0f0f; --muted:#606060; --line:#e5e5e5;
   --accent:#0f0f0f; --accent-fg:#fff;
+
+  /* Two intentional radius tiers plus pills — every rounded corner in this
+     file uses one of these four values, nothing in between. */
+  --r-sm:6px; --r-md:8px; --r-lg:14px; --r-pill:999px;
+
+  /* One type scale, shared by every card (site cards and Schedule/Backup
+     alike) so a heading always means the same size regardless of which
+     card it titles. */
+  --fs-h1:26px; --fs-h2:17px; --fs-h3:13px; --fs-body:14px; --fs-small:13px; --fs-tiny:11px;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg:#0b0b0b; --card:#161616; --fg:#f1f1f1; --muted:#9a9a9a; --line:#2a2a2a; --accent:#f1f1f1; --accent-fg:#0f0f0f; }
@@ -9,29 +18,30 @@
 
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--fg);
-  font:400 14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  font:400 var(--fs-body)/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
 main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
 
 .head { margin-bottom: 28px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .brand { display:flex; align-items:flex-start; gap:12px; }
-.brand img { border-radius:7px; margin-top:2px; flex:0 0 auto; }
-h1 { margin:0; font-size:26px; font-weight:650; letter-spacing:-0.02em; }
-.sub { margin:4px 0 0; color:var(--muted); }
-.master-row { flex:0 0 auto; padding:8px 14px; border:1px solid var(--line); border-radius:999px; font-size:13px; font-weight:500; cursor:pointer; }
+.brand img { border-radius:var(--r-md); margin-top:2px; flex:0 0 auto; }
+h1 { margin:0; font-size:var(--fs-h1); font-weight:650; letter-spacing:-0.02em; }
+.sub { margin:4px 0 0; color:var(--muted); font-size:var(--fs-small); }
+.master-row { flex:0 0 auto; padding:8px 14px; border:1px solid var(--line); border-radius:var(--r-pill); font-size:var(--fs-small); font-weight:500; cursor:pointer; }
 .master-row input { width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
 
-.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px; }
-.card h2 { margin:0 0 4px; font-size:15px; font-weight:600; }
-.muted { color:var(--muted); font-size:13px; margin:0 0 14px; }
-.note { font-size:13px; color:var(--muted); margin:12px 0 0; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg);
+  padding:24px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.card h2 { margin:0 0 6px; font-size:var(--fs-h2); font-weight:600; letter-spacing:-0.01em; }
+.muted { color:var(--muted); font-size:var(--fs-small); margin:0 0 14px; }
+.note { font-size:var(--fs-small); color:var(--muted); margin:12px 0 0; }
 
 .site-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 .site-head-left { display:flex; align-items:center; gap:10px; min-width:0; }
-.site-head h2 { margin:0; font-size:19px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.site-head .blurb { color:var(--muted); font-size:13px; margin:2px 0 0; }
+.site-head h2 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.site-head .blurb { color:var(--muted); font-size:var(--fs-small); margin:2px 0 0; }
 
 .site-logo {
-  flex:0 0 auto; width:28px; height:28px; border-radius:7px;
+  flex:0 0 auto; width:28px; height:28px; border-radius:var(--r-md);
   background:var(--fg); color:var(--card);
   display:flex; align-items:center; justify-content:center;
   font-weight:700; font-size:14px; line-height:1;
@@ -40,25 +50,29 @@ h1 { margin:0; font-size:26px; font-weight:650; letter-spacing:-0.02em; }
 .site-logo svg { width:100%; height:100%; display:block; }
 
 .inline-logo { display:inline-flex; vertical-align:-3px; width:16px; height:16px; margin-right:4px; }
-.inline-logo .site-logo { width:16px; height:16px; border-radius:4px; font-size:9px; }
+.inline-logo .site-logo { width:16px; height:16px; border-radius:var(--r-sm); font-size:9px; }
 
-.expand-btn {
-  flex:0 0 auto; width:24px; height:24px; padding:0;
+/* Shared base for every small, borderless icon-only control (expand arrow,
+   schedule-rule removal) — one size, one hover treatment. */
+.icon-btn {
+  flex:0 0 auto; width:26px; height:26px; padding:0;
   border:none; background:none; color:var(--muted); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  font-size:12px; transition:transform .15s, color .15s;
+  border-radius:var(--r-md); transition:transform .15s, color .15s, background .15s;
 }
-.expand-btn:hover { color:var(--fg); }
+.icon-btn:hover { color:var(--fg); background:var(--line); }
+
+.expand-btn { font-size:12px; }
 .expand-btn[aria-expanded="true"] { transform:rotate(90deg); }
 
 .groups { margin-top:16px; }
 .group-block { padding-top:16px; }
 .group-block:first-child { padding-top:0; }
-.group-block h3 { margin:0 0 2px; font-size:13px; font-weight:600; }
+.group-block h3 { margin:0 0 2px; font-size:var(--fs-h3); font-weight:600; }
 .group-block .muted { margin-bottom:6px; }
 
 .modes { display:flex; flex-wrap:wrap; gap:8px; }
-.modes button { padding:9px 16px; border:1px solid var(--line); border-radius:999px;
+.modes button { padding:9px 16px; border:1px solid var(--line); border-radius:var(--r-pill);
   background:transparent; color:var(--fg); font:inherit; font-weight:500; cursor:pointer; }
 .modes button[aria-checked="true"] { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
 
@@ -66,14 +80,14 @@ h1 { margin:0; font-size:26px; font-weight:650; letter-spacing:-0.02em; }
 .feat:first-of-type { border-top:none; }
 .feat .txt { flex:1; min-width:0; }
 .feat .label { font-weight:500; }
-.feat .desc { color:var(--muted); font-size:13px; }
-.feat .risk { font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:0 5px; margin-left:6px; vertical-align:1px; }
-.feat[data-overridden="1"] .label::after { content:"overridden"; font-size:11px; color:var(--muted); margin-left:8px; font-weight:400; }
+.feat .desc { color:var(--muted); font-size:var(--fs-small); }
+.feat .risk { font-size:var(--fs-tiny); color:var(--muted); border:1px solid var(--line); border-radius:var(--r-sm); padding:0 5px; margin-left:6px; vertical-align:1px; }
+.feat[data-overridden="1"] .label::after { content:"overridden"; font-size:var(--fs-tiny); color:var(--muted); margin-left:8px; font-weight:400; }
 
 /* switch */
 .sw { position:relative; flex:0 0 auto; width:38px; height:22px; margin-top:2px; }
 .sw input { position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
-.sw span { position:absolute; inset:0; border-radius:999px; background:var(--line); transition:background .15s; pointer-events:none; }
+.sw span { position:absolute; inset:0; border-radius:var(--r-pill); background:var(--line); transition:background .15s; pointer-events:none; }
 .sw span::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
   background:var(--card); transition:transform .15s; box-shadow:0 1px 2px #0003; }
 .sw input:checked + span { background:var(--accent); }
@@ -89,7 +103,7 @@ button { font:inherit; }
    with dark text, distinct from the transparent pill controls (.modes,
    .linkbtn) around them, in either color scheme. */
 .btn {
-  padding:8px 14px; border:1px solid #d8d8d8; border-radius:8px;
+  padding:8px 14px; border:1px solid #d8d8d8; border-radius:var(--r-md);
   background:#fff; color:#161616; cursor:pointer;
   box-shadow:0 1px 2px rgba(0,0,0,.06);
 }
@@ -97,7 +111,7 @@ button { font:inherit; }
 .btn:active { background:#efefef; }
 
 .linkbtn { border:none; background:none; padding:0; color:var(--muted); text-decoration:underline;
-  text-underline-offset:2px; cursor:pointer; font:inherit; font-size:13px; }
+  text-underline-offset:2px; cursor:pointer; font:inherit; font-size:var(--fs-small); }
 .linkbtn:hover { color:var(--fg); }
 
 .toggle-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:4px; }
@@ -112,21 +126,15 @@ button { font:inherit; }
 .sched-rule-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .sched-time-range { display:flex; align-items:center; gap:8px; color:var(--muted); }
 .sched-rule input[type="time"], .sched-rule select { padding:6px 8px; border:1px solid var(--line);
-  border-radius:6px; background:var(--card); color:var(--fg); font:inherit; }
+  border-radius:var(--r-sm); background:var(--card); color:var(--fg); font:inherit; }
 
-.sched-remove {
-  flex:0 0 auto; width:26px; height:26px; padding:0; margin-left:auto;
-  border:none; background:none; color:var(--muted); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:18px; line-height:1; border-radius:7px; transition:color .15s, background .15s;
-}
-.sched-remove:hover { color:var(--fg); background:var(--line); }
+.sched-remove { font-size:18px; margin-left:auto; }
 
 .days { display:flex; gap:4px; }
-.days label { font-size:12px; }
+.days label { font-size:var(--fs-tiny); }
 .days input { display:none; }
 .days span { display:inline-block; width:26px; text-align:center; padding:5px 0; border:1px solid var(--line);
-  border-radius:6px; cursor:pointer; color:var(--muted); }
+  border-radius:var(--r-sm); cursor:pointer; color:var(--muted); }
 .days input:checked + span { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
 
 .foot {

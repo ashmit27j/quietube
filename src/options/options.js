@@ -102,7 +102,7 @@
 
       const expandBtn = document.createElement('button');
       expandBtn.type = 'button';
-      expandBtn.className = 'expand-btn';
+      expandBtn.className = 'icon-btn expand-btn';
       expandBtn.setAttribute('aria-expanded', String(isExpanded));
       expandBtn.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} ${pack.label} toggles`);
       expandBtn.textContent = '▸';
@@ -303,7 +303,7 @@
 
       const del = document.createElement('button');
       del.type = 'button';
-      del.className = 'sched-remove';
+      del.className = 'icon-btn sched-remove';
       del.setAttribute('aria-label', 'Remove this schedule rule');
       del.title = 'Remove this schedule rule';
       del.textContent = '×';
