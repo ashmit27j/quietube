@@ -7,16 +7,16 @@ Paste-ready. Keep in sync with `CHANGELOG.md` and the manifest description.
 ## Name (45 char max)
 
 ```
-Quiet — Distraction Free for YouTube
+QuietSurf
 ```
 
-*Verify availability before submitting. Must not begin with "YouTube"; must not
-imply affiliation. See `.claude/skills/cws-release`.*
+*Verify availability before submitting. Must not begin with "YouTube" or
+"Reddit"; must not imply affiliation with either. See `.claude/skills/cws-release`.*
 
 ## Short description (132 char max)
 
 ```
-Hide the YouTube feed, sidebar, Shorts and comments. 40+ toggles, switchable modes. Free forever — no account, no time limit.
+Hide the distracting parts of YouTube, Reddit and more. Per-site toggles, switchable modes. Free forever — no account.
 ```
 
 ## Category
@@ -26,38 +26,44 @@ Productivity → Workflow & Planning
 ## Full description
 
 ```
-Quiet removes the parts of YouTube that keep you there longer than you meant to stay.
+QuietSurf removes the parts of the sites you use that keep you there longer than you meant to stay — one site at a time, on your terms.
 
 Free forever. No account. No subscription. No daily time limit. Nothing leaves your browser.
 
+━━ ONE SITE AT A TIME, NOTHING GRANTED UP FRONT ━━
+
+Install asks for nothing. The first time you turn a site on — from the popup, in one click — Chrome asks you to approve that site alone. Don't use QuietSurf on Reddit? It never touches Reddit, and never asked to.
+
 ━━ MODES, NOT A MASTER SWITCH ━━
 
-Most blockers make you choose between "focused" and "normal" — so the first time you need a recommendation, you disable the extension and never turn it back on. Quiet has modes instead:
+Most blockers make you choose between "focused" and "normal" — so the first time you need a recommendation, you disable the extension and never turn it back on. QuietSurf has modes instead:
 
-• Light — recommendations and Shorts gone, comments collapsed, the rest of YouTube intact
-• Music — playlists, mixes and related tracks deliberately stay. Visual noise, comments and Shorts go.
-• Deep Focus — search and watch only. Home feed replaced with a prompt, sidebar gone, thumbnails in grayscale.
-• Custom — your own set of toggles.
+• Light — the noisiest stuff gone, the rest of the site intact
+• Deep Focus — search-and-read/watch only
+• Custom — your own set of toggles
+• YouTube also gets Music — playlists, mixes and related tracks deliberately stay. Visual noise, comments and Shorts go.
 
-Switch with one click, or cycle with Alt+Shift+Q. Set a schedule so Deep Focus turns itself on during work hours.
+Switch with one click, or cycle YouTube's with Alt+Shift+Q. Set a schedule so Deep Focus turns itself on during work hours.
 
 And when you genuinely need to see something: press Alt+Shift+P to Peek. Everything comes back for 30 seconds, then hides itself again. You never have to disable the extension.
 
-━━ SHORTS, ACTUALLY GONE ━━
+━━ YOUTUBE: SHORTS, ACTUALLY GONE ━━
 
-Other extensions hide the Shorts shelves — but a /shorts/ link from a friend still opens the swipe feed, and one swipe later you're gone. Quiet opens those links in the normal player instead. The link still works. The feed never loads.
+Other extensions hide the Shorts shelves — but a /shorts/ link from a friend still opens the swipe feed, and one swipe later you're gone. QuietSurf opens those links in the normal player instead. The link still works. The feed never loads.
 
 Plus the shelves, the sidebar entry, Shorts in search, the channel tab, and Shorts in your subscriptions.
 
-━━ 40+ THINGS YOU CAN HIDE ━━
+━━ 41 THINGS YOU CAN HIDE ON YOUTUBE, 6 ON REDDIT (AND COUNTING) ━━
 
-Home feed and topic chips · subscriptions feed · watch-page sidebar · end-of-video wall · in-video cards and annotations · "people also search for" · auto-generated mixes · all playlists · every Shorts entry point · comments (hide, or collapse behind a button) · commenter avatars · live chat · autoplay · ambient mode · view counts · like counts · merch, tickets and offers · video descriptions · subscribe and join buttons · left sidebar · Explore and Trending · notification bell · search autocomplete · promoted results · "for you" shelves in search · and more.
+YouTube: home feed and topic chips · subscriptions feed · watch-page sidebar · end-of-video wall · in-video cards and annotations · "people also search for" · auto-generated mixes · all playlists · every Shorts entry point · comments (hide, or collapse behind a button) · commenter avatars · live chat · autoplay · ambient mode · view counts · like counts · merch, tickets and offers · video descriptions · subscribe and join buttons · left sidebar · Explore and Trending · notification bell · search autocomplete · promoted results · "for you" shelves in search · and more.
+
+Reddit: promoted posts · recommended-community cards · Trending Today & Popular Communities · the whole right sidebar · award & coin prompts · comment collapse.
 
 Two you won't find anywhere else: grayscale thumbnails, which takes most of the pull out of clickbait, and pause-on-tab-switch, so a video can't keep playing while you work.
 
 ━━ NO FLASH ━━
 
-Every other blocker shows you the full homepage for a split second before hiding it. Quiet applies your settings before the page paints. You never see the feed.
+Every other blocker shows you the full page for a split second before hiding it. QuietSurf applies your settings before the page paints. You never see the feed.
 
 ━━ PRIVACY ━━
 
@@ -69,11 +75,11 @@ Settings sync between your own Chrome profiles using Chrome's built-in sync. Exp
 
 ━━ OPEN SOURCE ━━
 
-MIT licensed. Issues and pull requests welcome.
+MIT licensed. Issues and pull requests welcome — including a pull request adding a pack for your favourite site.
 
 —
 
-Not affiliated with YouTube or Google. YouTube is a trademark of Google LLC.
+Not affiliated with YouTube, Google, Reddit, or any site this extension supports.
 ```
 
 ## Permission justifications
@@ -95,15 +101,15 @@ are `optional_host_permissions`.
 
 ## Screenshots (1280×800) — shoot in this order
 
-1. **Side by side**: default YouTube home vs Quiet Deep Focus mode. This is the thumbnail; it has to land in one glance.
-2. **Popup open** over a watch page, showing the mode buttons.
-3. **Options page**, scrolled to show the breadth of toggles.
+1. **Side by side**: default YouTube home vs QuietSurf Deep Focus mode. This is the thumbnail; it has to land in one glance.
+2. **Popup open** over a watch page, showing the mode buttons and quick toggles.
+3. **Options page**, scrolled to show both site cards and the breadth of toggles.
 4. **Watch page**, sidebar gone, player widened.
-5. **Text callout**: "Free forever. No account. No daily limit." — speaks directly to what DF Tube users are searching for.
+5. **Text callout**: "Free forever. No account. Nothing granted until you say so." — leads with the permission story, which is the thing no competitor can copy without a rewrite.
 
 ## Assets checklist
 
-- [ ] 128×128 store icon (`src/icons/128.png`)
+- [ ] 128×128 store icon (`src/icons/128.png`, from `npm run gen:brand`)
 - [ ] 5 screenshots at 1280×800
-- [ ] 440×280 small promo tile (`store/promo-440x280.png` is a placeholder — redo with real typography)
+- [ ] 440×280 small promo tile (`store/promo-440x280.png`, from `npm run gen:brand`)
 - [ ] Privacy policy URL (host `docs/PRIVACY.md` from the repo)

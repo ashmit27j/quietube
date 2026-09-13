@@ -98,6 +98,18 @@ and the store description both say "Not affiliated with YouTube or Google."
 **Open:** final name is not locked. Check availability on the Web Store and as
 a domain before the first submission.
 
+**Addendum (step 7 of the multi-site migration): locked in as "QuietSurf".**
+The name needed to stop being YouTube-specific once Reddit shipped as a
+second pack — "Quiet — Distraction Free for YouTube" no longer described the
+product. "QuietSurf" keeps the same disclaimer pattern (now naming every
+supported site, not just YouTube) and the same "must not begin with a
+supported site's name" constraint, now checked against both YouTube and
+Reddit. The mark (`brand/`) was designed alongside the rename rather than
+inherited from the old three-bars icon, for the same reason — see the brief
+at the top of `tools/gen-brand.mjs`. The GitHub repository and local
+directory stay named `quietube` — the maintainer's call, not part of this
+decision.
+
 ## D11 — Music mode deliberately keeps recommendations
 **Chosen:** `mixes` and `playlists_sitewide` default OFF in Music mode.
 **Why:** every competitor treats "related video" as universally bad, which

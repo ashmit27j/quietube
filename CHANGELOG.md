@@ -1,7 +1,42 @@
 # Changelog
 
 ## [0.1.0] — unreleased
-Scaffold. Registry, CSS engine, storage/mode resolution, popup, options page,
+
+Renamed from Quiet (YouTube-only) to **QuietSurf** during this same
+unreleased version — nothing has shipped under the old name, so this is one
+changelog entry, not a migration note between two releases. The YouTube-only
+history is preserved on the `quietube` branch/tag for reference.
+
+### Changed — core/pack architecture, multi-site, opt-in permissions
+- Split the single YouTube-shaped codebase into a site-agnostic `src/core/`
+  engine plus one `src/packs/<id>.js` per site. Zero behaviour change for
+  YouTube; see `docs/ARCHITECTURE.md` for the pack contract.
+- Added a Reddit pack (6 toggles) to prove the split — see docs/DECISIONS.md
+  D15 for what it found, including one real core/pack boundary correction
+  (`collapseWithReveal` moved into `core/dom.js`).
+- Storage schema 2: `masterEnabled` kill switch, settings nested per site
+  under `sites[pack.id]`, and a per-site `quick` toggle list for the popup.
+  Schema 1 → 2 migration included.
+- Permissions redesigned around opt-in-per-site (D16): `host_permissions` is
+  now empty and every pack's host is an `optional_host_permissions` entry,
+  requested only the first time a user turns that site on. Costs `scripting`
+  (dynamic per-pack content-script registration) and `activeTab` (so the
+  popup can tell which site a tab is on before any permission is granted).
+- Popup rebuilt around progressive disclosure: a master switch and the
+  current site's name always show; a supported site gets its mode picker and
+  quick toggles, an unsupported one gets a link to request a pack instead of
+  an empty control. Options page now renders one card per known pack.
+- Renamed YouTube's `casual`/`study` modes to the generic `light`/
+  `deep_focus` every pack now shares (`music` stays YouTube-only); a pack can
+  declare `modeAliases` so a config saved under the old name keeps resolving
+  (D17).
+- Replaced `tools/gen-icons.py` (Pillow, raster) with `tools/gen-brand.mjs`
+  (Playwright screenshotting real SVG + the vendored Outfit font) — one
+  geometry now produces the icons, the wordmark, and the store promo tile
+  instead of three separate raster drawings.
+
+### Added (original YouTube-only scaffold)
+Registry, CSS engine, storage/mode resolution, popup, options page,
 service worker, docs, skills and commands. Behaviour handlers are written but
 not yet verified against live YouTube — see docs/ROADMAP.md v0.2.
 

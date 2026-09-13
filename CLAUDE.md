@@ -1,8 +1,10 @@
-# Quiet — Distraction Free for YouTube
+# QuietSurf
 
-A free, open-source Chrome MV3 extension that hides distracting parts of YouTube.
-Built as a no-paywall replacement for **DF Tube**, aiming to beat **Unhook** on
-granularity, resilience and behaviour.
+A free, open-source Chrome MV3 extension that hides distracting parts of
+YouTube, Reddit, and any site with a pack. Started as a YouTube-only
+extension (still reachable on the `quietube` branch/tag); became a
+site-agnostic core engine plus per-site packs, with YouTube as the first
+pack rather than the special case.
 
 **Read `docs/SPEC.md` before your first change. Read `docs/DECISIONS.md` before
 arguing with any of the rules below — each one is there because the obvious
@@ -12,17 +14,23 @@ alternative was tried and rejected.**
 
 ## The five rules
 
-1. **The registry is the source of truth.** Every YouTube selector in this
-   codebase lives in `src/lib/registry.js` and nowhere else. Options UI,
-   injected CSS, behaviour dispatch, mode defaults and the health check are all
-   generated from it. If you are writing a `querySelector('ytd-…')` outside
-   `registry.js` or `behaviours.js`, stop and add a registry entry instead.
+1. **Packs own selectors, core owns behaviour.** Every selector for a site
+   lives in that site's `src/packs/<id>.js` and nowhere else. `src/core/`
+   must work for a site it has never heard of — zero selectors, hostnames or
+   page-type names. Options UI, injected CSS, behaviour dispatch, mode
+   defaults and the health check are all generated from a pack's registry.
+   If you are writing a `querySelector('ytd-…')` (or any other site-specific
+   selector) outside `packs/<id>.js`, stop and add a registry entry there
+   instead. Grep `src/core/*.js` for a pack's own vocabulary (`ytd-`,
+   `youtube`, whole-word `shorts`) to catch a leak — `tests/registry.spec.js`
+   runs exactly that check, with `watch` excluded as an ordinary English word.
 
-2. **CSS hides, JS only acts.** YouTube is an SPA that re-renders constantly.
-   A CSS rule applied once survives every re-render for free; a JS node-removal
-   loop fights the framework forever, burns CPU, and occasionally breaks
-   YouTube's own code. Use `kind: 'js'` only for things CSS provably cannot do:
-   redirects, clicking player controls, inserting our own UI.
+2. **CSS hides, JS only acts.** The sites this extension targets are SPAs
+   that re-render constantly. A CSS rule applied once survives every
+   re-render for free; a JS node-removal loop fights the framework forever,
+   burns CPU, and occasionally breaks the site's own code. Use `kind: 'js'`
+   only for things CSS provably cannot do: redirects, clicking player
+   controls, inserting our own UI.
 
 3. **No build step.** Plain JS, plain CSS, classic scripts, one global
    namespace (`globalThis.QS`). `src/` loads unpacked as-is. This keeps the
@@ -31,10 +39,14 @@ alternative was tried and rejected.**
    scripts without updating `docs/DECISIONS.md` first — MV3 content scripts are
    classic scripts and cannot `import`.
 
-4. **Permissions stay at `storage` + `*://*.youtube.com/*`.** DF Tube asks for
-   `tabs` and `notifications`; we do not need either and not asking is part of
-   the pitch. Any PR that adds a permission must justify it in `DECISIONS.md`
-   and update `docs/PRIVACY.md` and the store listing justification.
+4. **Every site is opt-in.** `host_permissions` is empty; each pack's host
+   lives in `optional_host_permissions` and is requested only the first time
+   the user turns that site on (D16). A pack is inert — no injection, no
+   effect — until its permission is granted. Adding a pack is not itself a
+   permission change worth a user prompt at install; adding a *permission*
+   (like `scripting` or `activeTab`, both already justified in D16) is, and
+   must be justified in `DECISIONS.md` with `docs/PRIVACY.md` and the store
+   listing justification updated in the same change.
 
 5. **Nothing leaves the browser. Ever.** No analytics, no remote config, no
    telemetry, no accounts, no network requests of any kind. This is a hard
@@ -47,40 +59,51 @@ alternative was tried and rejected.**
 
 ```
 src/
-  manifest.json          MV3 manifest. One content_scripts entry per pack; file ORDER matters.
+  manifest.json          MV3 manifest. No content_scripts array — see rule 4.
   core/                   site-agnostic engine. Zero selectors, hostnames or page names.
-    dom.js                waitFor/onEach/every — the only sanctioned observers
-    storage.js            storage shape, migrations, mode/override/peek resolution
+    dom.js                waitFor/onEach/every/collapseWithReveal — the only sanctioned observers
+    storage.js            storage shape, migrations, mode/override/peek resolution, multi-pack aware
     engine.js             builds + injects the stylesheet; the no-flash path
     behaviours.js         the one handler generic enough for core: pauseOnBlur
     main.js               page classification, SPA nav, wiring
   packs/
-    youtube.js            ← the YouTube pack: its registry, handlers, pages, modes. Start here.
-    youtube.css            styles for the pack's OWN injected UI only, never for hiding the site
+    youtube.js            the YouTube pack: its registry, handlers, pages, modes. Start here.
+    youtube.css           styles for the pack's OWN injected UI only, never for hiding the site
+    reddit.js             the Reddit pack — selectors unverified pending live access, see D15
+    reddit.css
   background/
-    service-worker.js    keyboard commands + install defaults. Stateless.
-  options/               full settings page, generated from the active pack's registry
-  popup/                 mode switcher + peek
-  icons/                 generated by tools/gen-icons.py
-docs/                    spec, architecture, decisions, competitors, release
-tests/                   registry / storage / engine / extension (offline) + selectors (live)
-tools/                   gen-features, gen-icons, check-release
-.claude/                 project skills and slash commands
+    service-worker.js     keyboard commands + install defaults + permission sync. Stateless.
+    pack-scripts.js       which files make up each pack, and (un)registers them via
+                           chrome.scripting against whatever's currently granted (D16)
+  options/                full settings page, one card per known pack, generated from each registry
+  popup/                  master switch + per-site mode picker + quick toggles (D17)
+  icons/                  generated by tools/gen-brand.mjs, from brand/
+docs/                     spec, architecture, decisions, competitors, release
+tests/                    registry / storage / engine / permissions / extension (offline) + selectors (live)
+tools/                    gen-features, gen-brand, check-release
+brand/                    mark/wordmark SVGs + rendered PNGs + the vendored Outfit font
+.claude/                  project skills and slash commands
 ```
 
-A new pack adds its own `content_scripts` entry and its own CSS file;
-nothing in `core/` changes. `packs/reddit.js` is the second one — its
-selectors are unverified pending live access, see `docs/DECISIONS.md` D15.
+Adding a pack touches a fixed, small set of files (`background/pack-scripts.js`,
+`manifest.json`'s `optional_host_permissions`, `popup.html`/`options.html`'s
+script tags, and the two test files' `PACK_IDS`) — see
+`docs/ARCHITECTURE.md` § "Adding a pack" for the checklist. `core/` never
+changes.
 
 ## Load order (do not reorder casually)
 
-`core/dom.js → core/storage.js → packs/<site>.js → core/engine.js → core/behaviours.js → core/main.js`
+`core/dom.js → core/storage.js → packs/<id>.js → core/engine.js → core/behaviours.js → core/main.js`
 
 `core/engine.js` applies the cached stylesheet **at parse time**, before
 `core/main.js` has awaited storage — and after the pack has loaded, since it
 reads `globalThis.QS.pack` at parse time too. That is what eliminates the
 flash of recommendations that every competitor has. See
-`docs/ARCHITECTURE.md §No-flash`.
+`docs/ARCHITECTURE.md §No-flash`. This order is no longer a manifest
+`content_scripts` array (there isn't one — see rule 4); it lives in
+`background/pack-scripts.js`'s `QS_PACKS`, and again in `popup.html`'s and
+`options.html`'s own `<script src>` tags, since neither page discovers a pack
+file at runtime any more than the manifest does.
 
 ## Local dev
 
@@ -88,25 +111,27 @@ flash of recommendations that every competitor has. See
 # load unpacked
 chrome://extensions → Developer mode → Load unpacked → select ./src
 
-# after editing a content script: hit reload on the card, then hard-reload YouTube
-# after editing registry.js only: the options page and CSS both regenerate on reload
+# after editing a content script: hit reload on the card, then hard-reload
+# a tab on that pack's site (nothing injects until you've granted that
+# site's permission once from the popup or options page — see rule 4)
 ```
 
 There is no `npm install` for the extension itself. `npm i` at the repo root
-only installs Playwright for `tests/`.
+only installs Playwright, for tests and for brand-asset generation.
 
 ```bash
 npm run test        # offline tests — run this after every change
 npm run check       # tests + release gate (permissions, icons, no network code)
-npm run test:live   # selectors against real YouTube — needs network
+npm run test:live   # YouTube pack selectors against real YouTube — needs network
+npm run gen:brand   # regenerate every brand asset from tools/gen-brand.mjs's geometry
 ```
 
 ## Commands available in this repo
 
 - `/add-toggle` — add a new feature end-to-end (registry entry, mode defaults,
   docs row, health-check case) without touching five files by hand.
-- `/audit-selectors` — check every registry selector against live YouTube and
-  report which ones have gone stale.
+- `/audit-selectors [pack]` — check a pack's registry selectors against its
+  live site and report which ones have gone stale.
 - `/release` — version bump, changelog, zip, store-listing checklist.
 
 ## Skills in this repo
@@ -128,13 +153,15 @@ npm run test:live   # selectors against real YouTube — needs network
 
 ## What "done" means for a feature
 
-- [ ] registry entry with `sel` ordered most-stable-first and a `risk` rating
-- [ ] sensible default in all three modes (`light` / `music` / `deep_focus`)
+- [ ] registry entry in the right pack, with `sel` ordered most-stable-first,
+      a `risk` rating, and a `verified` status set honestly
+- [ ] sensible default in every mode the pack declares (for `youtube`:
+      `light` / `music` / `deep_focus`)
 - [ ] verified on a real page at all three widths (mobile-ish 800px, 1280, 1920)
 - [ ] verified it does NOT fire on the other page types (`data-qs-page` scoping)
-- [ ] a case in `tests/selectors.spec.js`
+- [ ] a case in that pack's live selector test, if it has one
 - [ ] `npm run test` green (the engine test picks up new registry entries automatically)
-- [ ] a row in `docs/FEATURES.md` (`npm run gen:features`)
+- [ ] a row in `docs/FEATURES.md` (`npm run gen:features`, currently YouTube-only)
 
 ## Style
 

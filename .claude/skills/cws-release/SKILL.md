@@ -7,20 +7,24 @@ description: Package and submit this extension to the Chrome Web Store. Use when
 
 ## Pre-flight
 
-- [ ] `/audit-selectors` run, no `risk: 'low'` or `'med'` entry failing
+- [ ] `/audit-selectors youtube` run, no `risk: 'low'` or `'med'` entry
+      failing (Reddit has no live selector test yet — see D15)
 - [ ] `npx playwright test` green
-- [ ] Loaded unpacked, zero console errors on home / watch / search / subs /
-      channel / shorts
+- [ ] Loaded unpacked, granted the YouTube pack from the popup, zero console
+      errors on home / watch / search / subs / channel / shorts
 - [ ] Cold-load screen recording shows no flash of the home feed
+- [ ] Confirm `host_permissions` is still `[]` and every pack's host is in
+      `optional_host_permissions` — the install prompt should ask for
+      nothing beyond the three unprompted permissions (D16)
 - [ ] Version bumped in `src/manifest.json` (semver; the store rejects a
       re-upload at the same version)
 - [ ] `CHANGELOG.md` entry
-- [ ] Icons present at 16/32/48/128
+- [ ] Icons present at 16/32/48/128 (`npm run gen:brand` if stale)
 
 ## Packaging
 
 ```bash
-cd src && zip -r ../quiet-$(node -p "require('./manifest.json').version").zip . -x '.*' -x '__MACOSX'
+cd src && zip -r ../quietsurf-$(node -p "require('./manifest.json').version").zip . -x '.*' -x '__MACOSX'
 ```
 
 Zip the **contents** of `src/`, so `manifest.json` is at the root of the
@@ -28,18 +32,22 @@ archive. A zip containing a `src/` folder is the most common first rejection.
 
 ## Naming and trademark
 
-Google enforces these for YouTube-adjacent extensions:
+Google enforces these for extensions touching YouTube or Reddit content:
 
-- The name must **not begin** with "YouTube" and must not be confusable with an
-  official Google product.
-- "for YouTube" as a suffix is accepted; the ™ symbol is conventional.
-- The icon must not use the YouTube logo, its play-button shape, or its red.
-- The description must state non-affiliation. Current wording:
-  *"Not affiliated with YouTube or Google. YouTube is a trademark of Google LLC."*
-- Do not use "official", "premium", or imply a partnership.
+- The name must **not begin** with "YouTube" or "Reddit" and must not be
+  confusable with an official product of either.
+- The icon must not use the YouTube logo, its play-button shape, or its red
+  — nor Reddit's Snoo mascot or its orange. The mark in `brand/` is
+  deliberately a wave/ring shape in black and white only, chosen for this
+  reason (see the brief in `tools/gen-brand.mjs`).
+- The description must state non-affiliation with every site supported.
+  Current wording: *"Not affiliated with YouTube, Google, Reddit, or any
+  site this extension supports."*
+- Do not use "official", "premium", or imply a partnership with any of them.
 
-Current working name: **Quiet — Distraction Free for YouTube**. Verify it is
-not already taken on the store before first submission.
+Name: **QuietSurf**. Verify it is not already taken on the store before
+first submission. The repo and its GitHub URL stay `quietube` — a
+deliberate choice, not an oversight (the maintainer's call, not this skill's).
 
 ## Privacy practices form
 
@@ -83,7 +91,7 @@ Required:
 - small promo tile 440×280 (optional but improves placement)
 
 Screenshot plan (in order — the first one is what people actually see):
-1. Side-by-side: normal YouTube home vs Quiet Deep Focus mode.
+1. Side-by-side: normal YouTube home vs QuietSurf Deep Focus mode.
 2. The mode switcher popup.
 3. The options page showing the breadth of toggles.
 4. Watch page with the sidebar gone and the player widened.

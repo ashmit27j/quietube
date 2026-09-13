@@ -273,7 +273,7 @@
     const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'quiet-settings.json';
+    a.download = 'quietsurf-settings.json';
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -290,7 +290,7 @@
         cfg = await QS.storage.load();
         renderAll();
       } catch {
-        alert('That file is not valid Quiet settings.');
+        alert('That file is not valid QuietSurf settings.');
       }
     };
     inp.click();

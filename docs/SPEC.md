@@ -1,6 +1,19 @@
-# Quiet — product spec
+# QuietSurf — product spec
 
-## The opportunity
+## The product
+
+QuietSurf is a site-agnostic core engine plus a **pack** per site — a pack's
+own registry, handlers, pages and modes, nothing else touched. Nothing is
+granted at install; each site is opt-in, requested the first time a user
+turns it on (see `docs/DECISIONS.md` D16). YouTube is the first pack and the
+reason the project exists at all — its opportunity, positioning and feature
+parity work below still describe it specifically — but it is a pack, not a
+special case, and every claim in this document about "modes", "no flash", or
+"a real permission story" is a claim about the *engine*, true for any pack.
+
+## YouTube pack
+
+### The opportunity
 
 DF Tube has ~20,000 users and a **3.56/5** rating across 232 reviews. Its
 feature set is small (7 core toggles) and it was free for years. It then
@@ -20,7 +33,7 @@ The gap is:
    YouTube redesign, because their selectors are scattered through the code and
    nobody notices which one died.
 
-## Positioning
+### Positioning
 
 > Everything DF Tube gates behind a subscription, free forever — plus modes,
 > a real Shorts kill, and no flash of the feed before it hides.
@@ -33,12 +46,13 @@ Three claims that are literally true and that no competitor can match today:
 | **Modes, not a master switch** | Deep Focus / Music / Light, hotkey-cycled, optionally scheduled. |
 | **No flash of the feed** | Synchronous localStorage-cached CSS at `document_start`. See ARCHITECTURE. |
 
-Plus two permission/trust claims: `storage` only (DF Tube asks for `tabs` and
-`notifications`), and open source with zero network calls.
+Plus two permission/trust claims: nothing is granted up front (`docs/DECISIONS.md`
+D16 — DF Tube asks for `tabs` and `notifications` unconditionally), and open
+source with zero network calls.
 
-## Feature parity matrix
+### Feature parity matrix
 
-| | DF Tube (free) | DF Tube (paid) | Unhook | **Quiet** |
+| | DF Tube (free) | DF Tube (paid) | Unhook | **QuietSurf** |
 |---|---|---|---|---|
 | Hide homepage grid | ✓ (1h/day) | ✓ | ✓ | ✓ |
 | Hide sidebar recommendations | ✓ (1h/day) | ✓ | ✓ | ✓ |
@@ -58,14 +72,16 @@ Plus two permission/trust claims: `storage` only (DF Tube asks for `tabs` and
 | **Pause on tab blur** | — | — | — | **✓** |
 | Import / export settings | — | — | — | ✓ |
 | Sync across devices | — | ✓ | ✓ | ✓ (`storage.sync`) |
-| Permissions requested | storage, tabs, notifications | same | storage | **storage only** |
+| Permissions requested up front | storage, tabs, notifications | same | storage | **none — opt-in per site (D16)** |
+| Also works beyond YouTube | — | — | — | **✓ (Reddit pack, more to come)** |
 | Price | 1h/day free | subscription | free | **free** |
 
-Toggle count: DF Tube 7, Unhook ~20, **Quiet 40+** (see `FEATURES.md`).
+Toggle count: DF Tube 7, Unhook ~20, **QuietSurf's YouTube pack 41** (see
+`FEATURES.md`).
 
-## The differentiators, in detail
+### The differentiators, in detail
 
-### Modes
+#### Modes
 Four presets plus custom:
 
 - **Off** — extension does nothing.
@@ -96,12 +112,24 @@ itself. This exists because the observed failure mode of every blocker is
 *"I needed the sidebar once, so I disabled the extension, and never re-enabled
 it."* A time-boxed escape hatch keeps people installed.
 
-### Real Shorts removal
+#### Real Shorts removal
 Competitors hide Shorts *shelves*. A `/shorts/` link from a friend still opens
-the swipe feed, and one swipe later you are gone. Quiet rewrites
+the swipe feed, and one swipe later you are gone. The YouTube pack rewrites
 `youtube.com/shorts/ID` → `youtube.com/watch?v=ID` before the Shorts player
 boots, so the link still works and the feed never exists. Plus the shelf, the
 nav entry, the search results, the channel tab and the subscriptions rows.
+
+## Reddit pack
+
+The second pack, added specifically to prove the core/pack split actually
+generalises rather than being YouTube's structure wearing a costume. Six
+starting toggles (promoted posts, recommended-community cards, the
+Trending/Popular sidebar module, the whole right sidebar, award/coin
+prompts, comment collapse) using the generic `light`/`deep_focus` mode names.
+Its selectors are `verified: 'unverified'` pending a live audit from a
+network that can reach reddit.com — see `docs/DECISIONS.md` D15 for what was
+found building it, including the one core/pack boundary correction it
+surfaced (`collapseWithReveal` moving into `core/dom.js`).
 
 ## Non-goals for v1
 
@@ -112,13 +140,16 @@ nav entry, the search results, the channel tab and the subscriptions rows.
 - Anything that touches ads. Stay out of that fight; it is a different review
   category and a different legal posture.
 - Any server, account, or sync of our own.
+- A pack store / marketplace, or any mechanism for loading a pack QuietSurf
+  didn't ship with. Packs are reviewed and shipped in this repo, full stop.
 
 ## Success criteria for v1
 
-- Loads unpacked with zero console errors on home, watch, search, subs,
-  channel and shorts pages.
+- The YouTube pack loads unpacked with zero console errors on home, watch,
+  search, subs, channel and shorts pages, once its permission is granted.
 - No visible flash of the home feed on a cold load (verify with a throttled
   profile and a screen recording).
-- Every `risk: 'low'` and `risk: 'med'` selector matches at least one node on
-  a real page in `tests/selectors.spec.js`.
-- Passes Chrome Web Store review with the single `storage` permission.
+- Every `risk: 'low'` and `risk: 'med'` YouTube selector matches at least one
+  node on a real page in `tests/selectors.spec.js`.
+- Passes Chrome Web Store review with `storage` + `scripting` + `activeTab`
+  and zero host permissions granted at install (D16).

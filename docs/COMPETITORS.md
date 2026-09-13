@@ -37,12 +37,23 @@ The main free competitor, and the real bar to clear.
 Named repeatedly in DF Tube reviews as an alternative. Worth installing and
 diffing before the listing copy is finalised.
 
-## Where Quiet lands
+## Where QuietSurf lands
 
 More toggles than Unhook, more capability than paid DF Tube, and three things
 nobody has (modes, scheduling, peek) plus a real Shorts kill. The pitch writes
 itself: *everything DF Tube charges for, free, plus the things neither of them
 built.*
+
+None of the above — nor any other distraction-blocker we've looked at —
+targets more than one site. Each is a single-site extension with a single
+permission story baked into its architecture; adding a second site would mean
+a second extension, a second listing, a second update cycle. QuietSurf's
+core/pack split (`docs/ARCHITECTURE.md`) makes a second site a ~600-line pack
+file and a manifest entry, not a rewrite — and D16's opt-in-per-site
+permission model means adding pack seven costs the *user* nothing they didn't
+already agree to for pack one. That's the second positioning claim, not just
+the YouTube one: *the only tool in this category that scales past one site
+without asking for everything up front.*
 
 ## Sources
 
