@@ -88,6 +88,13 @@
           r.title = 'Depends on a YouTube class name — most likely toggle to break after a YouTube redesign.';
           label.append(r);
         }
+        if (f.verified === 'needs-account') {
+          const r = document.createElement('span');
+          r.className = 'risk';
+          r.textContent = 'needs account';
+          r.title = 'Only exists when signed in — the live selector audit cannot verify this from a signed-out browser.';
+          label.append(r);
+        }
         const desc = document.createElement('div');
         desc.className = 'desc';
         desc.textContent = f.desc;

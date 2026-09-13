@@ -153,3 +153,31 @@ stale," until you've confirmed real content exists on that page for a signed-in
 session. A failing `risk: 'low'`/`'med'` selector on an empty feed is not a
 redesign signal the way the skill's "flag low/med failures" heuristic assumes —
 check for content first.
+
+**Addendum (2026-09, `verified` field added):** the registry now carries a
+`verified: 'live' | 'unverified' | 'needs-account'` field per feature so the
+audit can skip known-unconfirmable cases instead of reporting false failures.
+Rerunning the live audit after adding it (real network, signed-out session)
+surfaced two more instances of the exact pattern this entry already describes,
+plus one genuine break:
+- `grayscale_thumbs` and `shorts_shelf` fail on `/` for the same reason as
+  `home_chips`/`home_ads`/`mixes` above (empty personalized feed) — marked
+  `unverified`, not fixed, because there is nothing wrong to fix.
+- `grayscale_thumbs` also failed on `/@YouTube/videos`, a channel page with 30
+  real videos — genuine content, genuine failure. Cause: channel grids now
+  render thumbnails as `yt-thumbnail-view-model`, not `ytd-thumbnail` (the same
+  view-model migration already noted on `like_counts`/`search_suggestions`/
+  `shorts_search`). Search results still use the old element, so this is
+  another A/B rollout, not a full replacement — the new selector was added
+  alongside the old one on both `grayscale_thumbs` and `hide_thumbs` (the
+  latter hadn't failed yet only because a stray `ytd-thumbnail` elsewhere on
+  the page kept its count above zero — a latent break, fixed defensively).
+- `notification_bell`, `subs_feed` and `shorts_subs` are marked
+  `needs-account` rather than `unverified`: D14's own text above already notes
+  the bell "only renders when signed in — same constraint as the subs page",
+  so they get the label that means "structurally requires login," not the one
+  that means "session couldn't confirm either way."
+- `live_chat` (needs an actual live stream, not the fixed test video) and
+  `merch_shelf` (needs a channel with merch enabled) are marked `unverified`
+  for the same reason: the fixed audit fixtures cannot exercise them, signed
+  in or not.

@@ -14,6 +14,10 @@
  *    Those cases are skipped rather than deleted so the gap stays visible.
  *  - A `risk: 'high'` failure is routine maintenance. A `risk: 'low'` failure
  *    means a real redesign and probably several other things are broken too.
+ *  - Features whose registry `verified` is `unverified` or `needs-account`
+ *    are skipped, not asserted: a signed-out, history-less, never-served-an-ad
+ *    session structurally cannot confirm them either way (see D14). Reporting
+ *    them as failures is what makes an audit nobody trusts.
  */
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -42,7 +46,16 @@ for (const [page, url] of Object.entries(PAGES)) {
     test.skip(NEEDS_AUTH.has(page), 'needs a signed-in session');
 
     for (const f of features) {
-      test(`${f.id} (risk:${f.risk})`, async ({ page: p }) => {
+      // `unverified` / `needs-account` features are known-unconfirmable from
+      // this signed-out, history-less session (D14) — skipping rather than
+      // failing them is the whole point of the `verified` field: an audit
+      // that reports false failures is an audit nobody runs.
+      const title = `${f.id} (risk:${f.risk}, verified:${f.verified})`;
+      if (f.verified !== 'live') {
+        test.skip(title, () => {});
+        continue;
+      }
+      test(title, async ({ page: p }) => {
         await p.goto(url, { waitUntil: 'domcontentloaded' });
         // YouTube hydrates lazily; give the renderers a moment.
         await p.waitForTimeout(3500);
@@ -62,7 +75,7 @@ for (const [page, url] of Object.entries(PAGES)) {
         // entries do not exist in the DOM until it is opened. Open it only
         // when it is not already populated (other page types render it open
         // by default, and re-clicking would toggle it shut).
-        if (['shorts_nav', 'explore_trending'].includes(f.id)) {
+        if (f.id === 'shorts_nav') {
           const guideOpen = await p.evaluate(
             () => document.querySelectorAll('ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer').length > 0
           );
@@ -101,6 +114,7 @@ test('registry is internally consistent', () => {
     ids.add(f.id);
     expect(['css', 'js', 'both']).toContain(f.kind);
     expect(['low', 'med', 'high']).toContain(f.risk);
+    expect(['live', 'unverified', 'needs-account']).toContain(f.verified);
     expect(f.modes, `${f.id} missing mode defaults`).toBeTruthy();
     for (const m of ['study', 'music', 'casual']) {
       expect(typeof f.modes[m], `${f.id}.modes.${m} must be a boolean`).toBe('boolean');

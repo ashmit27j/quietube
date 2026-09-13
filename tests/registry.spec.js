@@ -21,6 +21,7 @@ test('every feature is well formed', () => {
     expect(f.id, `${f.id}: ids must be snake_case (they are storage keys)`).toMatch(/^[a-z][a-z0-9_]*$/);
     expect(['css', 'js', 'both'], `${f.id}.kind`).toContain(f.kind);
     expect(['low', 'med', 'high'], `${f.id}.risk`).toContain(f.risk);
+    expect(['live', 'unverified', 'needs-account'], `${f.id}.verified`).toContain(f.verified);
     expect(QT.GROUPS.map((g) => g.id), `${f.id}.group`).toContain(f.group);
     expect(['home', 'watch', 'search', 'subs', 'channel', 'shorts', 'all'], `${f.id}.pages`).toContain(f.pages);
 

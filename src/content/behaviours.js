@@ -51,6 +51,42 @@
     }
   };
 
+  // ── navigation ───────────────────────────────────────────────────────────
+
+  /**
+   * Hide the guide's "Explore" section (D14). YouTube dropped "Trending" from
+   * the guide outright and turned "Explore" into a heading with no id, class
+   * or attribute — text is the only thing that distinguishes it, so this
+   * cannot be a CSS selector (rule 2 exception: CSS provably cannot do this).
+   *
+   * The guide drawer hydrates late and is collapsed by default on the watch
+   * page, hence waitFor rather than assuming the section is already there.
+   */
+  H.exploreTrending = () => {
+    const MATCH = /^(explore|trending)$/i;
+
+    const hideMatches = () => {
+      for (const leaf of document.querySelectorAll('ytd-guide-section-renderer *')) {
+        if (leaf.children.length) continue; // only leaf nodes can be "just text"
+        const text = (leaf.textContent || '').trim();
+        if (!MATCH.test(text)) continue;
+        const section = leaf.closest('ytd-guide-section-renderer');
+        if (!section || section.dataset.qtHidden === '1') continue;
+        section.dataset.qtHidden = '1';
+        section.style.display = 'none';
+      }
+    };
+
+    const cancel = waitFor('ytd-guide-section-renderer', hideMatches);
+    const undo = () => {
+      for (const section of document.querySelectorAll('ytd-guide-section-renderer[data-qt-hidden="1"]')) {
+        delete section.dataset.qtHidden;
+        section.style.display = '';
+      }
+    };
+    return all(cancel, undo);
+  };
+
   // ── player ───────────────────────────────────────────────────────────────
 
   /**
