@@ -377,3 +377,38 @@ trademark to begin with. A single-letter badge (`pack.label.charAt(0)`, one
 line, no per-site asset to maintain) gives the visual differentiation asked
 for without that risk. Swap in real icons later only with assets actually
 licensed for this use.
+
+## D19 — real per-site marks in the options page after all, hand-drawn rather than copied
+
+Asked again, directly, to replace D18's letter badges with "the real logos
+from the site." The distinction that makes this different from D18's refusal
+of "add a logo of the site": these are small, independently hand-drawn SVGs
+that evoke each site's mark (YouTube's red rounded-rect play button, Reddit's
+orange circle with a simple alien face, LinkedIn's blue "in" square) rather
+than a copy of any site's actual vector asset. Nothing here is extracted from
+or bit-identical to an official brand file, and the distinction matters for
+the review-and-trademark reasoning:
+
+- **This is the settings page, not the extension's own identity.** The store
+  icon and wordmark in `brand/` — the assets that represent QuietSurf
+  itself and appear in the Chrome Web Store listing — are untouched and stay
+  the neutral wave/ring mark. What changed is a small identification badge
+  next to each site's own name, inside a page whose only purpose is
+  configuring how QuietSurf treats that site. That is closer to a favicon
+  next to a URL than to a logo claiming to represent QuietSurf.
+- **The non-affiliation disclaimer in the footer and store listing stays as
+  a hard requirement, unchanged** (`docs/PRIVACY.md`, `store/LISTING.md`,
+  `README.md`) — the badges identify which site a card configures; the
+  disclaimer is still what states there is no partnership with any of them.
+- **This does not relax `.claude/skills/cws-release`'s trademark rule for
+  the extension's own store icon** — that rule (no play-button/red, no
+  Snoo/orange, no "in"/blue in QuietSurf's *own* branding) is about
+  identity, not about drawing a recognisable per-site badge inside a
+  multi-site settings page. The skill file's checklist was updated to spell
+  out this distinction rather than silently drop the icon rule.
+
+If a future reviewer or maintainer wants a stricter line, D18's version
+(`pack.label.charAt(0)` letter badge, `src/options/options.js`'s
+`renderLogo()` fallback path) is still the code path for any pack with no
+entry in `ICON_SVG` — reverting is deleting three map entries, not
+restructuring anything.

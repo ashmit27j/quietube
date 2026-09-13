@@ -19,6 +19,49 @@
   // by the user's own clicks within this one page session.
   const expanded = new Set();
 
+  // Small, self-drawn identification marks — not a copy of any site's
+  // official vector asset — so a card is recognisable at a glance. Scoped to
+  // this settings page only; the extension's own store icon/wordmark in
+  // brand/ stays the neutral wave/ring mark (see docs/DECISIONS.md D19,
+  // which supersedes D18's letter-badge choice for this one use). A pack
+  // with no entry here falls back to its initial letter, so adding a pack
+  // never requires touching this file to stay presentable.
+  const ICON_SVG = {
+    youtube:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<rect width="24" height="24" rx="6" fill="#FF0000"/>' +
+      '<path d="M9.8 7.6v8.8L16.8 12z" fill="#fff"/></svg>',
+    reddit:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="12" fill="#FF4500"/>' +
+      '<circle cx="12" cy="6.6" r="1.25" fill="#fff"/>' +
+      '<line x1="12" y1="7.8" x2="12" y2="9.4" stroke="#fff" stroke-width="1"/>' +
+      '<ellipse cx="12" cy="14.1" rx="6.4" ry="4.5" fill="#fff"/>' +
+      '<circle cx="9" cy="13.5" r="1.1" fill="#FF4500"/>' +
+      '<circle cx="15" cy="13.5" r="1.1" fill="#FF4500"/>' +
+      '<path d="M9 16.1c.9.75 1.9 1.05 3 1.05s2.1-.3 3-1.05" stroke="#FF4500" stroke-width="0.9" fill="none" stroke-linecap="round"/></svg>',
+    linkedin:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<rect width="24" height="24" rx="4" fill="#0A66C2"/>' +
+      '<circle cx="7.4" cy="7.1" r="1.6" fill="#fff"/>' +
+      '<rect x="6.1" y="9.9" width="2.6" height="8.1" fill="#fff"/>' +
+      '<path d="M11.1 9.9h2.5v1.4h.04c.35-.66 1.2-1.36 2.47-1.36 2.64 0 3.13 1.74 3.13 4v5.02h-2.6v-4.45c0-1.06-.02-2.42-1.47-2.42-1.48 0-1.7 1.15-1.7 2.34v4.53h-2.6V9.9z" fill="#fff"/></svg>',
+  };
+
+  function renderLogo(pack) {
+    const logo = document.createElement('div');
+    logo.setAttribute('aria-hidden', 'true');
+    const icon = ICON_SVG[pack.id];
+    if (icon) {
+      logo.className = 'site-logo has-icon';
+      logo.innerHTML = icon;
+    } else {
+      logo.className = 'site-logo';
+      logo.textContent = pack.label.trim().charAt(0).toUpperCase();
+    }
+    return logo;
+  }
+
   async function persistSites() {
     await QS.storage.save({ sites: cfg.sites });
   }
@@ -53,6 +96,11 @@
       const left = document.createElement('div');
       left.className = 'site-head-left';
 
+      const logo = renderLogo(pack);
+      const h2 = document.createElement('h2');
+      h2.textContent = pack.label;
+      left.append(logo, h2);
+
       const expandBtn = document.createElement('button');
       expandBtn.type = 'button';
       expandBtn.className = 'expand-btn';
@@ -65,19 +113,7 @@
         renderSites();
       };
 
-      // A neutral initial badge, not the site's own logo — this project
-      // avoids other products' trademarked marks the same way it avoids a
-      // play-button shape or red in its own icon (see docs/DECISIONS.md D10).
-      const logo = document.createElement('div');
-      logo.className = 'site-logo';
-      logo.textContent = pack.label.trim().charAt(0).toUpperCase();
-      logo.setAttribute('aria-hidden', 'true');
-
-      const h2 = document.createElement('h2');
-      h2.textContent = pack.label;
-
-      left.append(expandBtn, logo, h2);
-      head.append(left);
+      head.append(left, expandBtn);
       card.append(head);
 
       // modes
@@ -222,6 +258,7 @@
   // core/storage.js's schema-1 migration uses (see docs/DECISIONS.md D17).
   const schedulePack = packs[0];
   $('sched-pack-name').textContent = schedulePack.label;
+  $('sched-pack-logo').append(renderLogo(schedulePack));
   const SCHED_MODES = ['off', ...Object.keys(schedulePack.modes), 'custom'];
   const SCHED_MODE_META = { off: QS.storage.OFF_META, ...schedulePack.modes, custom: QS.storage.CUSTOM_META };
   const schedDefaultMode = Object.keys(schedulePack.modes).at(-1); // the pack's own most-aggressive mode
@@ -302,6 +339,16 @@
   };
 
   // ── backup ──────────────────────────────────────────────────────────────
+  // A backed-up file is one JSON blob covering every known pack at once, not
+  // a per-site export — show which sites that covers.
+  const backupSitesHost = $('backup-sites');
+  for (const pack of packs) {
+    const chip = document.createElement('span');
+    chip.className = 'backup-chip';
+    chip.append(renderLogo(pack), document.createTextNode(pack.label));
+    backupSitesHost.append(chip);
+  }
+
   $('export').onclick = () => {
     const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
