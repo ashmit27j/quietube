@@ -34,12 +34,12 @@ Free forever. No account. No subscription. No daily time limit. Nothing leaves y
 
 Most blockers make you choose between "focused" and "normal" — so the first time you need a recommendation, you disable the extension and never turn it back on. Quiet has modes instead:
 
-• Casual — recommendations and Shorts gone, comments collapsed, the rest of YouTube intact
+• Light — recommendations and Shorts gone, comments collapsed, the rest of YouTube intact
 • Music — playlists, mixes and related tracks deliberately stay. Visual noise, comments and Shorts go.
-• Study — search and watch only. Home feed replaced with a prompt, sidebar gone, thumbnails in grayscale.
+• Deep Focus — search and watch only. Home feed replaced with a prompt, sidebar gone, thumbnails in grayscale.
 • Custom — your own set of toggles.
 
-Switch with one click, or cycle with Alt+Shift+Q. Set a schedule so Study mode turns itself on during work hours.
+Switch with one click, or cycle with Alt+Shift+Q. Set a schedule so Deep Focus turns itself on during work hours.
 
 And when you genuinely need to see something: press Alt+Shift+P to Peek. Everything comes back for 30 seconds, then hides itself again. You never have to disable the extension.
 
@@ -87,6 +87,7 @@ are `optional_host_permissions`.
 | Single purpose | Hide user-selected distracting parts of supported sites' web interfaces (currently YouTube and Reddit), per site and per user preference. |
 | `storage` | Stores the user's own toggle settings and selected mode, per site. No other data is stored. |
 | `scripting` | Lets a site's hiding rules start applying immediately after the user grants that site, instead of waiting for a tab reload or browser restart. Only used for sites the user has already been asked about and approved. |
+| `activeTab` | Lets the popup show the right view (mode picker vs. "no pack for this site") for whichever tab the user has open when they click the extension icon. Silent permission — no install-time prompt — and only active for that one tab while the popup is open. |
 | Optional host permission `*://*.youtube.com/*` | Requested only when the user turns on the YouTube pack. The extension modifies only the appearance of youtube.com pages. |
 | Optional host permission `*://*.reddit.com/*` | Requested only when the user turns on the Reddit pack. The extension modifies only the appearance of reddit.com pages. |
 | Remote code | No. All code is included in the package. |
@@ -94,7 +95,7 @@ are `optional_host_permissions`.
 
 ## Screenshots (1280×800) — shoot in this order
 
-1. **Side by side**: default YouTube home vs Quiet Study mode. This is the thumbnail; it has to land in one glance.
+1. **Side by side**: default YouTube home vs Quiet Deep Focus mode. This is the thumbnail; it has to land in one glance.
 2. **Popup open** over a watch page, showing the mode buttons.
 3. **Options page**, scrolled to show the breadth of toggles.
 4. **Watch page**, sidebar gone, player widened.

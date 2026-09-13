@@ -1,33 +1,60 @@
 /**
- * Options page. Every control here is GENERATED from the active pack's
+ * Options page. Every control here is GENERATED from each known pack's
  * registry — adding a feature to a pack makes it appear here automatically,
- * with no edit to this file. That is the point of the registry; keep it that way.
- *
- * Single-pack for now (see docs/DECISIONS.md): grouped-by-site rendering
- * across multiple packs, and a master-kill-switch control, are step 6, not
- * this file. This file already reads/writes the schema-2 `sites[pack.id]`
- * shape so a second pack needs no storage changes here either.
+ * with no edit to this file. That is the point of the registry; keep it that
+ * way. Grouped by site (see options.html, which loads every pack) rather
+ * than the single-pack rendering this file used before step 6.
  */
 (async function () {
   const QS = globalThis.QS;
-  const pack = QS.pack;
-  const MODES = ['off', ...Object.keys(pack.modes), 'custom'];
-  const MODE_META = { off: QS.storage.OFF_META, ...pack.modes, custom: QS.storage.CUSTOM_META };
+  const packs = QS.storage.knownPacks();
   let cfg = await QS.storage.load();
-  let site = cfg.sites[pack.id];
 
   const $ = (id) => document.getElementById(id);
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const QUICK_MAX = 5;
 
-  async function persistSite() {
+  async function persistSites() {
     await QS.storage.save({ sites: cfg.sites });
   }
 
-  // ── modes ───────────────────────────────────────────────────────────────
-  function renderModes() {
-    const active = QS.storage.activeMode(cfg);
-    $('modes').replaceChildren(
-      ...MODES.map((m) => {
+  // ── master switch ───────────────────────────────────────────────────────
+  const masterToggle = $('master-toggle');
+  masterToggle.checked = cfg.masterEnabled !== false;
+  masterToggle.addEventListener('change', async () => {
+    cfg.masterEnabled = masterToggle.checked;
+    await QS.storage.save({ masterEnabled: cfg.masterEnabled });
+  });
+
+  // ── one card per known pack ─────────────────────────────────────────────
+  function renderSites() {
+    const host = $('sites');
+    host.replaceChildren();
+
+    for (const pack of packs) {
+      const site = cfg.sites[pack.id];
+      const MODES = ['off', ...Object.keys(pack.modes), 'custom'];
+      const MODE_META = { off: QS.storage.OFF_META, ...pack.modes, custom: QS.storage.CUSTOM_META };
+      const active = QS.storage.activeMode(cfg, Date.now(), pack);
+      const { flags } = QS.storage.resolve(cfg, Date.now(), pack);
+
+      const card = document.createElement('section');
+      card.className = 'card site-card';
+
+      const head = document.createElement('div');
+      head.className = 'site-head';
+      const h2 = document.createElement('h2');
+      h2.textContent = pack.label;
+      head.append(h2);
+      card.append(head);
+
+      // modes
+      const modesEl = document.createElement('div');
+      modesEl.className = 'modes';
+      modesEl.setAttribute('role', 'radiogroup');
+      modesEl.setAttribute('aria-label', `${pack.label} mode`);
+      for (const m of MODES) {
+        if (m === 'custom' && !Object.keys(site.custom || {}).length) continue;
         const b = document.createElement('button');
         b.type = 'button';
         b.role = 'radio';
@@ -35,106 +62,137 @@
         b.title = MODE_META[m].blurb;
         b.setAttribute('aria-checked', String(m === active));
         b.onclick = async () => {
-          // D16: the pack is inert until its host permission is granted.
-          // Ask the first time the user picks anything other than Off — the
-          // service worker's chrome.permissions.onAdded listener registers
-          // and injects the pack once granted; this only needs to ask.
+          // D16: the pack is inert until its host permission is granted. Ask
+          // the first time the user picks anything other than Off for it.
           if (m !== 'off') {
             const already = await chrome.permissions.contains({ origins: pack.hosts });
             if (!already) {
               const granted = await chrome.permissions.request({ origins: pack.hosts }).catch(() => false);
-              if (!granted) return; // declined — leave the mode untouched
+              if (!granted) return;
             }
           }
           site.mode = m;
-          await persistSite();
+          await persistSites();
           renderAll();
         };
-        return b;
-      })
-    );
-
-    const n = Object.keys(site.overrides || {}).length;
-    $('override-note').hidden = n === 0;
-    $('override-count').textContent = String(n);
-  }
-
-  $('clear-overrides').onclick = async () => {
-    site.overrides = {};
-    await persistSite();
-    renderAll();
-  };
-
-  // ── feature toggles ─────────────────────────────────────────────────────
-  function renderFeatures() {
-    const { flags } = QS.storage.resolve(cfg);
-    const host = $('features');
-    host.replaceChildren();
-
-    for (const g of pack.groups) {
-      const items = pack.features.filter((f) => f.group === g.id);
-      if (!items.length) continue;
-
-      const card = document.createElement('section');
-      card.className = 'card';
-      card.innerHTML = `<h2></h2><p class="muted"></p>`;
-      card.querySelector('h2').textContent = g.label;
-      card.querySelector('.muted').textContent = g.blurb;
-
-      for (const f of items) {
-        const row = document.createElement('div');
-        row.className = 'feat';
-        row.dataset.overridden = f.id in (site.overrides || {}) ? '1' : '0';
-
-        const sw = document.createElement('label');
-        sw.className = 'sw';
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = !!flags[f.id];
-        input.setAttribute('aria-label', f.label);
-        input.onchange = async () => {
-          site.overrides = site.overrides || {};
-          site.overrides[f.id] = input.checked;
-          await persistSite();
-          renderAll();
-        };
-        sw.append(input, document.createElement('span'));
-
-        const txt = document.createElement('div');
-        txt.className = 'txt';
-        const label = document.createElement('div');
-        label.className = 'label';
-        label.textContent = f.label;
-        if (f.risk === 'high') {
-          const r = document.createElement('span');
-          r.className = 'risk';
-          r.textContent = 'fragile';
-          r.title = 'Depends on a YouTube class name — most likely toggle to break after a YouTube redesign.';
-          label.append(r);
-        }
-        if (f.verified === 'needs-account') {
-          const r = document.createElement('span');
-          r.className = 'risk';
-          r.textContent = 'needs account';
-          r.title = 'Only exists when signed in — the live selector audit cannot verify this from a signed-out browser.';
-          label.append(r);
-        }
-        const desc = document.createElement('div');
-        desc.className = 'desc';
-        desc.textContent = f.desc;
-        txt.append(label, desc);
-
-        row.append(sw, txt);
-        card.append(row);
+        modesEl.append(b);
       }
+      card.append(modesEl);
+
+      const overrideCount = Object.keys(site.overrides || {}).length;
+      if (overrideCount) {
+        const note = document.createElement('p');
+        note.className = 'note';
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'linkbtn';
+        clearBtn.textContent = 'Clear overrides';
+        clearBtn.onclick = async () => {
+          site.overrides = {};
+          await persistSites();
+          renderAll();
+        };
+        note.append(`${overrideCount} override(s) active. `, clearBtn);
+        card.append(note);
+      }
+
+      // feature toggles, grouped
+      const groupsHost = document.createElement('div');
+      groupsHost.className = 'groups';
+      for (const g of pack.groups) {
+        const items = pack.features.filter((f) => f.group === g.id);
+        if (!items.length) continue;
+
+        const block = document.createElement('div');
+        block.className = 'group-block';
+        const h3 = document.createElement('h3');
+        h3.textContent = g.label;
+        const gp = document.createElement('p');
+        gp.className = 'muted';
+        gp.textContent = g.blurb;
+        block.append(h3, gp);
+
+        for (const f of items) {
+          const row = document.createElement('div');
+          row.className = 'feat';
+          row.dataset.overridden = f.id in (site.overrides || {}) ? '1' : '0';
+
+          const quick = site.quick || [];
+          const isQuick = quick.includes(f.id);
+          const star = document.createElement('button');
+          star.type = 'button';
+          star.className = 'quick-star';
+          star.setAttribute('aria-pressed', String(isQuick));
+          star.title = isQuick
+            ? 'Remove from the popup\'s quick toggles'
+            : `Add to the popup's quick toggles (up to ${QUICK_MAX})`;
+          star.textContent = isQuick ? '★' : '☆';
+          star.disabled = !isQuick && quick.length >= QUICK_MAX;
+          star.onclick = async () => {
+            site.quick = site.quick || [];
+            site.quick = isQuick ? site.quick.filter((id) => id !== f.id) : [...site.quick, f.id].slice(0, QUICK_MAX);
+            await persistSites();
+            renderAll();
+          };
+
+          const sw = document.createElement('label');
+          sw.className = 'sw';
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.checked = !!flags[f.id];
+          input.setAttribute('aria-label', f.label);
+          input.onchange = async () => {
+            site.overrides = site.overrides || {};
+            site.overrides[f.id] = input.checked;
+            await persistSites();
+            renderAll();
+          };
+          sw.append(input, document.createElement('span'));
+
+          const txt = document.createElement('div');
+          txt.className = 'txt';
+          const label = document.createElement('div');
+          label.className = 'label';
+          label.textContent = f.label;
+          if (f.risk === 'high') {
+            const r = document.createElement('span');
+            r.className = 'risk';
+            r.textContent = 'fragile';
+            r.title = 'Depends on a class name — most likely toggle to break after a redesign.';
+            label.append(r);
+          }
+          if (f.verified === 'needs-account') {
+            const r = document.createElement('span');
+            r.className = 'risk';
+            r.textContent = 'needs account';
+            r.title = 'Only exists when signed in — the live selector audit cannot verify this from a signed-out browser.';
+            label.append(r);
+          }
+          const desc = document.createElement('div');
+          desc.className = 'desc';
+          desc.textContent = f.desc;
+          txt.append(label, desc);
+
+          row.append(star, sw, txt);
+          block.append(row);
+        }
+        groupsHost.append(block);
+      }
+      card.append(groupsHost);
       host.append(card);
     }
   }
 
-  // ── schedule ────────────────────────────────────────────────────────────
-  // Schedule is global, not per-site (see docs/storage shape) — one set of
-  // time windows picks a mode name, evaluated against whichever site is
-  // active when the window opens.
+  // ── schedule ─────────────────────────────────────────────────────────────
+  // Global, not per-site (see docs/ARCHITECTURE.md): one set of time windows
+  // applies across every site. Its mode dropdown necessarily comes from ONE
+  // pack's vocabulary — the first known pack, by the same convention
+  // core/storage.js's schema-1 migration uses (see docs/DECISIONS.md D17).
+  const schedulePack = packs[0];
+  $('sched-pack-name').textContent = schedulePack.label;
+  const SCHED_MODES = ['off', ...Object.keys(schedulePack.modes), 'custom'];
+  const SCHED_MODE_META = { off: QS.storage.OFF_META, ...schedulePack.modes, custom: QS.storage.CUSTOM_META };
+  const schedDefaultMode = Object.keys(schedulePack.modes).at(-1); // the pack's own most-aggressive mode
+
   function renderSchedule() {
     const s = (cfg.schedule = cfg.schedule || { enabled: false, rules: [] });
     $('sched-enabled').checked = !!s.enabled;
@@ -175,10 +233,10 @@
       to.onchange = () => { rule.to = to.value; persistSchedule(); };
 
       const sel = document.createElement('select');
-      MODES.forEach((m) => {
+      SCHED_MODES.forEach((m) => {
         const o = document.createElement('option');
         o.value = m;
-        o.textContent = MODE_META[m].label;
+        o.textContent = SCHED_MODE_META[m].label;
         o.selected = rule.mode === m;
         sel.append(o);
       });
@@ -196,7 +254,7 @@
 
   async function persistSchedule() {
     await QS.storage.save({ schedule: cfg.schedule });
-    renderModes();
+    renderSites();
   }
 
   $('sched-enabled').onchange = async (e) => {
@@ -205,7 +263,7 @@
   };
 
   $('sched-add').onclick = async () => {
-    cfg.schedule.rules.push({ days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00', mode: 'study' });
+    cfg.schedule.rules.push({ days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00', mode: schedDefaultMode });
     await persistSchedule();
     renderAll();
   };
@@ -230,7 +288,6 @@
         const incoming = JSON.parse(text);
         await QS.storage.save(incoming);
         cfg = await QS.storage.load();
-        site = cfg.sites[pack.id];
         renderAll();
       } catch {
         alert('That file is not valid Quiet settings.');
@@ -244,14 +301,13 @@
     await (chrome.storage.sync || chrome.storage.local).clear();
     await QS.storage.save(QS.storage.DEFAULTS);
     cfg = await QS.storage.load();
-    site = cfg.sites[pack.id];
     renderAll();
   };
 
   function renderAll() {
-    renderModes();
+    masterToggle.checked = cfg.masterEnabled !== false;
+    renderSites();
     renderSchedule();
-    renderFeatures();
   }
 
   renderAll();

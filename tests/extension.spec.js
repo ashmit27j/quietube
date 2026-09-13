@@ -45,7 +45,11 @@ test.beforeAll(async () => {
     channel: process.env.PLAYWRIGHT_CHROMIUM_PATH ? undefined : 'chromium',
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
   });
-  await ctx.route('**/*', (route) =>
+  // Scoped to http(s) only — a bare '**/*' also matches chrome-extension://
+  // requests, which would replace popup.html/options.html's own <script src>
+  // loads with this HTML body and break them with a "Unexpected token '<'"
+  // parse error (found by the step 6 popup/options tests below).
+  await ctx.route('https://**/*', (route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: SHELL })
   );
 
@@ -151,4 +155,75 @@ test('no console errors from the service worker', async () => {
   await sw.evaluate(() => syncRegisteredScripts());
   await new Promise((r) => setTimeout(r, 300));
   expect(errors).toEqual([]);
+});
+
+test.describe('popup and options pages (step 6 progressive disclosure)', () => {
+  async function extensionUrl(path) {
+    const sw = await getServiceWorker();
+    return `chrome-extension://${new URL(sw.url()).host}/${path}`;
+  }
+
+  test('options page renders a card per known pack, with no console errors', async () => {
+    const errors = [];
+    const page = await ctx.newPage();
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.goto(await extensionUrl('options/options.html'));
+    await page.waitForTimeout(600);
+
+    expect(await page.locator('.site-card').count(), 'one card per known pack').toBe(2);
+    expect(await page.locator('#master-toggle').isChecked()).toBe(true);
+    expect(errors).toEqual([]);
+    await page.close();
+  });
+
+  test('picking Off on a site needs no permission and updates its mode button', async () => {
+    const page = await ctx.newPage();
+    await page.goto(await extensionUrl('options/options.html'));
+    await page.waitForTimeout(600);
+
+    const youtubeCard = page.locator('.site-card').first();
+    await youtubeCard.locator('.modes button', { hasText: 'Off' }).click();
+    await page.waitForTimeout(300);
+    await expect(youtubeCard.locator('.modes button', { hasText: 'Off' })).toHaveAttribute('aria-checked', 'true');
+    await page.close();
+  });
+
+  test('the quick-star toggle adds and removes a feature from sites[id].quick', async () => {
+    const page = await ctx.newPage();
+    await page.goto(await extensionUrl('options/options.html'));
+    await page.waitForTimeout(600);
+
+    const star = page.locator('.quick-star').first();
+    await expect(star).toHaveAttribute('aria-pressed', 'false');
+    await star.click();
+    await page.waitForTimeout(300);
+    await expect(star).toHaveAttribute('aria-pressed', 'true');
+
+    const sw = await getServiceWorker();
+    const stored = await sw.evaluate(() => (chrome.storage.sync || chrome.storage.local).get(null));
+    expect(stored.sites.youtube.quick).toContain('home_feed'); // first feature in the first group
+    await page.close();
+  });
+
+  test('popup renders without console errors regardless of which site is detected', async () => {
+    // This environment cannot make chrome.tabs.query reveal a real tab URL
+    // from the popup (activeTab only activates on a genuine action-icon
+    // invocation, which opening popup.html as a plain tab is not — see
+    // docs/DECISIONS.md D16's addendum) — so this only exercises the
+    // "no pack detected" fallback path, not the per-site view. It still
+    // proves the popup boots cleanly against the real multi-pack storage.
+    const errors = [];
+    const page = await ctx.newPage();
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.goto(await extensionUrl('popup/popup.html'));
+    await page.waitForTimeout(600);
+
+    expect(await page.locator('#master-toggle').count()).toBe(1);
+    expect(await page.locator('#unsupported-view').isHidden()).toBe(false);
+    expect(await page.locator('#request-pack').getAttribute('href')).toContain('github.com');
+    expect(errors).toEqual([]);
+    await page.close();
+  });
 });

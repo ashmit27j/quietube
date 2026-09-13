@@ -29,9 +29,13 @@ site looks like — it only knows the **pack contract**:
 }
 ```
 
-Two optional extension hooks beyond the required shape:
+Three optional extension hooks beyond the required shape:
 
 - `customBaseMode` — which of the pack's own modes `'custom'` starts from.
+- `modeAliases: { [oldName]: newName }` — lets a pack rename one of its own
+  modes without breaking a config saved under the old name (`core/storage.js`
+  remaps transparently in `activeMode()`). YouTube's `casual`/`study` became
+  the generic `light`/`deep_focus` this way — see D17.
 - `navEvents: string[]` — custom DOM events the site's own SPA router fires
   on navigation, for an instant reaction. Purely an optimisation: the
   generic href-poll in `core/main.js` always catches up within 800ms.
@@ -159,14 +163,14 @@ half-added.
   "masterEnabled": true,
   "sites": {
     "youtube": {
-      "mode": "study",
+      "mode": "deep_focus",
       "custom": { "home_feed": true },
       "overrides": { "comments_hide": true },
       "quick": ["watch_sidebar", "comments_collapse", "shorts_shelf"]
     }
   },
   "schedule": { "enabled": true, "rules": [
-    { "days": [1,2,3,4,5], "from": "09:00", "to": "17:00", "mode": "study" }
+    { "days": [1,2,3,4,5], "from": "09:00", "to": "17:00", "mode": "deep_focus" }
   ]},
   "peekUntil": 0
 }
@@ -199,6 +203,33 @@ Use `/add-toggle`, or by hand:
 4. Regenerate `docs/FEATURES.md` (`node tools/gen-features.mjs`).
 
 The options page and the stylesheet need no edits — both are generated.
+
+## Adding a pack
+
+A pack's own registry/handlers/pages/modes are entirely self-contained in its
+one file — `core/` never changes. But "no build step" means nothing
+discovers a pack file at runtime either, so a *fixed, short* list of other
+places name it explicitly:
+
+1. Write `src/packs/<id>.js` (the pack contract, at the top of
+   `packs/youtube.js`) and `src/packs/<id>.css` (its injected UI styles, if
+   it has any — see `packs/youtube.css`).
+2. Add an entry to `QS_PACKS` in `src/background/pack-scripts.js` — the id,
+   host `matches`, and the exact load order (`core/dom.js → core/storage.js →
+   packs/<id>.js → core/engine.js → core/behaviours.js → core/main.js`).
+3. Add `*://*.your-host.com/*` to `optional_host_permissions` in
+   `src/manifest.json`. Do **not** add it to `host_permissions` (D16).
+4. Add a `<script src="../packs/<id>.js">` tag to both `popup/popup.html` and
+   `options/options.html`, after `core/storage.js` and after every
+   already-listed pack. Order matters here too: the *first* pack listed on a
+   multi-pack page is treated as "the original" by `core/storage.js`'s
+   schema 1 migration and by the options page's schedule mode list (see
+   `docs/DECISIONS.md` D17) — keep `youtube.js` first unless you have a
+   specific reason to change that assumption everywhere it's made.
+5. Add `<id>` to `PACK_IDS` in `tests/registry.spec.js` and
+   `tests/engine.spec.js` — both are parameterised over that list already.
+6. Verify every selector with the `site-selector-audit` skill before setting
+   any feature's `verified` to `'live'`.
 
 ## Selector stability tiers
 

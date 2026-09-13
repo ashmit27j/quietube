@@ -138,8 +138,9 @@ test('manifest stays minimal — zero host permissions up front (D16)', () => {
   expect(manifest.manifest_version).toBe(3);
   expect(
     manifest.permissions,
-    'storage + scripting only — scripting is what dynamic per-pack registration costs (D16)'
-  ).toEqual(['storage', 'scripting']);
+    'storage + scripting + activeTab only — scripting is what dynamic per-pack registration ' +
+    'costs, activeTab is what the popup needs to see which site a tab is on (D16)'
+  ).toEqual(['storage', 'scripting', 'activeTab']);
   expect(manifest.host_permissions, 'nothing granted at install — see D16').toEqual([]);
   expect(manifest.content_scripts, 'packs register dynamically now; no static content_scripts entry').toBeUndefined();
   for (const id of PACK_IDS) {

@@ -30,7 +30,7 @@ Three claims that are literally true and that no competitor can match today:
 | Claim | Why it holds |
 |---|---|
 | **No paywall, no account, no time limit** | DF Tube's #1 complaint. We never add one. |
-| **Modes, not a master switch** | Study / Music / Casual, hotkey-cycled, optionally scheduled. |
+| **Modes, not a master switch** | Deep Focus / Music / Light, hotkey-cycled, optionally scheduled. |
 | **No flash of the feed** | Synchronous localStorage-cached CSS at `document_start`. See ARCHITECTURE. |
 
 Plus two permission/trust claims: `storage` only (DF Tube asks for `tabs` and
@@ -69,13 +69,16 @@ Toggle count: DF Tube 7, Unhook ~20, **Quiet 40+** (see `FEATURES.md`).
 Four presets plus custom:
 
 - **Off** — extension does nothing.
-- **Casual** — recommendations and Shorts gone, comments collapsed, everything
-  else normal. The "I still want YouTube to be YouTube" setting.
+- **Light** — recommendations and Shorts gone, comments collapsed, everything
+  else normal. The "I still want YouTube to be YouTube" setting. (Named
+  `casual` originally; renamed to the generic mode name every pack shares —
+  see D17.)
 - **Music** — playlists, mixes and related tracks deliberately *stay*; visual
   noise, comments and Shorts go. Existing tools break music listening because
-  they treat "related video" as always-bad.
-- **Study** — search-and-watch only. Home feed replaced by a prompt, left rail
-  gone, thumbnails grayscale.
+  they treat "related video" as always-bad. YouTube-pack-only: a mode with no
+  generic equivalent, not forced onto other packs.
+- **Deep Focus** — search-and-watch only. Home feed replaced by a prompt, left
+  rail gone, thumbnails grayscale. (Named `study` originally; see D17.)
 - **Custom** — the user's own set.
 
 Modes are switched from the popup or by cycling with `Alt+Shift+Q`. Any
@@ -85,7 +88,7 @@ preset system. This is the design that makes 40 toggles usable instead of
 overwhelming.
 
 **Scheduling**: rules of the shape *(days, from, to, mode)*. A matching rule
-beats the manually selected mode. Study mode 09:00–17:00 on weekdays is the
+beats the manually selected mode. Deep Focus 09:00–17:00 on weekdays is the
 motivating case.
 
 **Peek**: `Alt+Shift+P` reveals everything for 30 seconds, then it re-hides

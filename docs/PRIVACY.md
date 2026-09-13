@@ -41,6 +41,7 @@ from `chrome://extensions` without uninstalling the extension.
 |---|---|
 | `storage` | To save your toggle settings. |
 | `scripting` | To start applying your settings on a site immediately after you grant it, without waiting for a browser restart. Only used for sites you have enabled. |
+| `activeTab` | To show the popup's per-site view for whichever site you have open. Silent — no install prompt — and only active for the tab you're on while you have the popup open. |
 | `*://*.youtube.com/*` (optional) | To run the YouTube pack. Requested only when you enable YouTube. |
 | `*://*.reddit.com/*` (optional) | To run the Reddit pack. Requested only when you enable Reddit. |
 

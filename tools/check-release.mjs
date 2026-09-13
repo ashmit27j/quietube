@@ -18,14 +18,16 @@ const check = (cond, msg, level = 'fail') =>
 // ── manifest ──────────────────────────────────────────────────────────────
 // D16: every site is an optional_host_permissions grant, requested on first
 // use — host_permissions must stay empty and permissions must stay exactly
-// storage + scripting (scripting is what dynamic per-pack registration
-// costs; see background/pack-scripts.js). See DECISIONS.md D16 (supersedes
-// D5's single-permission-set framing, kept for the "why so few" reasoning).
+// storage + scripting + activeTab (scripting is what dynamic per-pack
+// registration costs, see background/pack-scripts.js; activeTab is what the
+// popup needs to see which site a tab is on before any host permission is
+// granted). See DECISIONS.md D16 (supersedes D5's single-permission-set
+// framing, kept for the "why so few" reasoning).
 const manifest = JSON.parse(readFileSync(join(root, 'src/manifest.json'), 'utf8'));
 check(manifest.manifest_version === 3, 'manifest_version is 3');
 check(
-  JSON.stringify(manifest.permissions) === JSON.stringify(['storage', 'scripting']),
-  `permissions are exactly ["storage","scripting"] (found ${JSON.stringify(manifest.permissions)}) — see DECISIONS.md D16`
+  JSON.stringify(manifest.permissions) === JSON.stringify(['storage', 'scripting', 'activeTab']),
+  `permissions are exactly ["storage","scripting","activeTab"] (found ${JSON.stringify(manifest.permissions)}) — see DECISIONS.md D16`
 );
 check(
   Array.isArray(manifest.host_permissions) && manifest.host_permissions.length === 0,

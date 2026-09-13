@@ -10,29 +10,23 @@
     <header class="head">
       <div>
         <h1>Quiet</h1>
-        <p class="sub">Distraction-free YouTube. Free, no account, nothing leaves your browser.</p>
+        <p class="sub">Distraction-free browsing. Free, no account, nothing leaves your browser.</p>
       </div>
+      <label class="row master-row">
+        <input type="checkbox" id="master-toggle">
+        Enabled everywhere
+      </label>
     </header>
 
-    <section class="card">
-      <h2>Mode</h2>
-      <p class="muted">Modes are presets. Flipping any switch below layers an override on top of the active mode and keeps it there across mode changes.</p>
-      <div id="modes" class="modes" role="radiogroup" aria-label="Mode"></div>
-      <p id="override-note" class="note" hidden>
-        <span id="override-count"></span> override(s) active.
-        <button id="clear-overrides" class="linkbtn">Clear overrides</button>
-      </p>
-    </section>
+    <div id="sites"></div>
 
     <section class="card">
       <h2>Schedule</h2>
-      <p class="muted">Auto-switch mode by time of day. A matching rule wins over the mode picked above.</p>
+      <p class="muted">Auto-switch mode by time of day. A matching rule wins over the mode picked above. One schedule applies across every site; its mode list comes from <span id="sched-pack-name"></span>.</p>
       <label class="row"><input type="checkbox" id="sched-enabled"> Enable scheduled modes</label>
       <div id="sched-rules"></div>
       <button id="sched-add" class="linkbtn">Add rule</button>
     </section>
-
-    <div id="features"></div>
 
     <section class="card">
       <h2>Backup</h2>
@@ -44,12 +38,13 @@
     </section>
 
     <footer class="foot">
-      <p>Not affiliated with YouTube or Google. YouTube is a trademark of Google LLC.</p>
+      <p>Not affiliated with YouTube, Reddit, or any site this extension supports.</p>
     </footer>
   </main>
 
   <script src="../core/storage.js"></script>
   <script src="../packs/youtube.js"></script>
+  <script src="../packs/reddit.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

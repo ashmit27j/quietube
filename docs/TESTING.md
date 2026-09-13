@@ -2,8 +2,9 @@
 
 ## Manual checklist (do this before every release)
 
-Load unpacked from `src/`, then walk these six pages in each of Study, Music
-and Casual:
+Load unpacked from `src/`, open the popup on a youtube.com tab and pick any
+mode to grant the YouTube permission (D16 — nothing runs until you do), then
+walk these six pages in each of Deep Focus, Music and Light:
 
 | Page | URL | Check |
 |---|---|---|
@@ -59,6 +60,23 @@ downloading:
 ```bash
 PLAYWRIGHT_CHROMIUM_PATH=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1) npm run test
 ```
+
+## A gotcha: `globalThis` pollution across spec files
+
+Several offline spec files load real source via
+`new Function(readFileSync(...))()` and assert on the `globalThis.QS` /
+`globalThis.chrome` state that leaves behind — the same pattern that makes
+these tests possible without a build step. Playwright reuses worker
+processes across test files for speed, so `globalThis` is the literal same
+object across whichever files land on the same worker: a file that runs
+first can leave `globalThis.QS.packs` holding both packs, or `globalThis.chrome`
+shaped for a different stub, by the time the next file's tests run.
+
+Consequence: never write an assertion that assumes a pristine `globalThis`
+("only youtube is loaded so far"). Reset the specific keys your test depends
+on in a `beforeEach` instead (see `tests/storage.spec.js`'s "multi-pack
+contexts" block), and restore them afterward if later tests in the same file
+depend on the original shape.
 
 ## Quick static checks
 

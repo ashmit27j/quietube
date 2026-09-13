@@ -36,14 +36,14 @@ test('off mode hides nothing', () => {
   expect(Object.values(flags).some(Boolean)).toBe(false);
 });
 
-test('study is stricter than casual', () => {
+test('deep_focus is stricter than light', () => {
   const count = (mode) =>
     Object.values(QS.storage.resolve(withMode(mode)).flags).filter(Boolean).length;
-  expect(count('study')).toBeGreaterThan(count('casual'));
+  expect(count('deep_focus')).toBeGreaterThan(count('light'));
 });
 
 test('overrides beat the mode in both directions', () => {
-  const cfg = withMode('study', { overrides: { home_feed: false, view_count: true } });
+  const cfg = withMode('deep_focus', { overrides: { home_feed: false, view_count: true } });
   const { flags } = QS.storage.resolve(cfg);
   expect(flags.home_feed, 'override should turn a mode-on feature off').toBe(false);
   expect(flags.view_count, 'override should turn a mode-off feature on').toBe(true);
@@ -52,7 +52,7 @@ test('overrides beat the mode in both directions', () => {
 
 test('peek reveals everything and only while it lasts', () => {
   const now = Date.now();
-  const cfg = withMode('study');
+  const cfg = withMode('deep_focus');
   cfg.peekUntil = now + 10_000;
   expect(Object.values(QS.storage.resolve(cfg, now).flags).some(Boolean)).toBe(false);
   expect(
@@ -63,22 +63,42 @@ test('peek reveals everything and only while it lasts', () => {
 
 test('peek beats an override that is explicitly on', () => {
   const now = Date.now();
-  const cfg = withMode('casual', { overrides: { comments_hide: true } });
+  const cfg = withMode('light', { overrides: { comments_hide: true } });
   cfg.peekUntil = now + 5000;
   expect(QS.storage.resolve(cfg, now).flags.comments_hide).toBe(false);
 });
 
-test('custom mode starts from casual and applies the custom set', () => {
+test('custom mode starts from light and applies the custom set', () => {
   const cfg = withMode('custom', { custom: { view_count: true, home_feed: false } });
   const { flags } = QS.storage.resolve(cfg);
   expect(flags.view_count).toBe(true);
   expect(flags.home_feed).toBe(false);
-  expect(flags.watch_sidebar, 'unspecified keys fall back to the casual baseline').toBe(true);
+  expect(flags.watch_sidebar, 'unspecified keys fall back to the light baseline').toBe(true);
+});
+
+test.describe('mode aliases (D17: casual/study renamed to light/deep_focus)', () => {
+  test('a site stored under the old mode name resolves exactly like the new one', () => {
+    const legacy = QS.storage.resolve(withMode('casual'));
+    const current = QS.storage.resolve(withMode('light'));
+    expect(legacy.flags).toEqual(current.flags);
+  });
+
+  test('activeMode reports the current name, not the stored legacy one', () => {
+    expect(QS.storage.activeMode(withMode('study'))).toBe('deep_focus');
+    expect(QS.storage.activeMode(withMode('casual'))).toBe('light');
+  });
+
+  test('a schedule rule written under the old mode name still resolves', () => {
+    const cfg = withMode('light');
+    cfg.schedule = { enabled: true, rules: [{ days: [1, 2, 3, 4, 5], from: '00:00', to: '23:59', mode: 'study' }] };
+    const monday10 = new Date(2026, 8, 14, 10, 0).getTime();
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('deep_focus');
+  });
 });
 
 test.describe('master kill switch', () => {
   test('masterEnabled: false hides everything regardless of mode', () => {
-    const cfg = withMode('study');
+    const cfg = withMode('deep_focus');
     cfg.masterEnabled = false;
     const { mode, flags } = QS.storage.resolve(cfg);
     expect(mode).toBe('off');
@@ -86,7 +106,7 @@ test.describe('master kill switch', () => {
   });
 
   test('masterEnabled beats overrides and an active peek too', () => {
-    const cfg = withMode('study', { overrides: { home_feed: true } });
+    const cfg = withMode('deep_focus', { overrides: { home_feed: true } });
     cfg.masterEnabled = false;
     cfg.peekUntil = Date.now() + 999_999;
     const { flags } = QS.storage.resolve(cfg);
@@ -94,14 +114,14 @@ test.describe('master kill switch', () => {
   });
 
   test('masterEnabled: true (the default) does not affect resolution', () => {
-    const cfg = withMode('study');
-    expect(QS.storage.resolve(cfg).mode).toBe('study');
+    const cfg = withMode('deep_focus');
+    expect(QS.storage.resolve(cfg).mode).toBe('deep_focus');
   });
 });
 
 test.describe('schedule', () => {
   const withRule = (rule) => {
-    const cfg = withMode('casual');
+    const cfg = withMode('light');
     cfg.schedule = { enabled: true, rules: [rule] };
     return cfg;
   };
@@ -111,44 +131,44 @@ test.describe('schedule', () => {
   const sunday10 = new Date(2026, 8, 13, 10, 0).getTime();
 
   test('a matching weekday window wins over the manual mode', () => {
-    const cfg = withRule({ days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00', mode: 'study' });
-    expect(QS.storage.activeMode(cfg, monday10)).toBe('study');
-    expect(QS.storage.activeMode(cfg, monday20)).toBe('casual');
-    expect(QS.storage.activeMode(cfg, sunday10)).toBe('casual');
+    const cfg = withRule({ days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00', mode: 'deep_focus' });
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('deep_focus');
+    expect(QS.storage.activeMode(cfg, monday20)).toBe('light');
+    expect(QS.storage.activeMode(cfg, sunday10)).toBe('light');
   });
 
   test('a window that crosses midnight still matches', () => {
-    const cfg = withRule({ days: [1], from: '22:00', to: '06:00', mode: 'study' });
+    const cfg = withRule({ days: [1], from: '22:00', to: '06:00', mode: 'deep_focus' });
     const monday23 = new Date(2026, 8, 14, 23, 0).getTime();
     const monday2am = new Date(2026, 8, 14, 2, 0).getTime();
     const monday12 = new Date(2026, 8, 14, 12, 0).getTime();
-    expect(QS.storage.activeMode(cfg, monday23)).toBe('study');
-    expect(QS.storage.activeMode(cfg, monday2am)).toBe('study');
-    expect(QS.storage.activeMode(cfg, monday12)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, monday23)).toBe('deep_focus');
+    expect(QS.storage.activeMode(cfg, monday2am)).toBe('deep_focus');
+    expect(QS.storage.activeMode(cfg, monday12)).toBe('light');
   });
 
   test('a disabled schedule is ignored', () => {
-    const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'study' });
+    const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'deep_focus' });
     cfg.schedule.enabled = false;
-    expect(QS.storage.activeMode(cfg, monday10)).toBe('casual');
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('light');
   });
 
   test('the boundary is inclusive at the start, exclusive at the end', () => {
-    const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'study' });
-    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 9, 0).getTime())).toBe('study');
-    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 17, 0).getTime())).toBe('casual');
+    const cfg = withRule({ days: [1], from: '09:00', to: '17:00', mode: 'deep_focus' });
+    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 9, 0).getTime())).toBe('deep_focus');
+    expect(QS.storage.activeMode(cfg, new Date(2026, 8, 14, 17, 0).getTime())).toBe('light');
   });
 
   test('the first matching rule wins', () => {
-    const cfg = withMode('casual');
+    const cfg = withMode('light');
     cfg.schedule = {
       enabled: true,
       rules: [
-        { days: [1], from: '09:00', to: '17:00', mode: 'study' },
+        { days: [1], from: '09:00', to: '17:00', mode: 'deep_focus' },
         { days: [1], from: '10:00', to: '11:00', mode: 'music' },
       ],
     };
-    expect(QS.storage.activeMode(cfg, monday10)).toBe('study');
+    expect(QS.storage.activeMode(cfg, monday10)).toBe('deep_focus');
   });
 });
 
@@ -199,5 +219,53 @@ test.describe('schema 1 -> 2 migration', () => {
     const cfg = await QS.storage.load();
     expect(cfg.schema).toBe(2);
     expect(cfg.sites[pack.id].mode).toBe('casual');
+  });
+});
+
+test.describe('multi-pack contexts (popup/options load more than one pack)', () => {
+  // Other spec files share this worker process and also do `new
+  // Function(readFileSync(...packs/reddit.js))()` at their own top level, so
+  // globalThis.QS.packs may already hold both packs by the time this file's
+  // tests run — reset to a known single-pack baseline before each test
+  // rather than assuming a pristine one, and restore it after the last.
+  test.beforeEach(() => {
+    globalThis.QS.pack = pack;
+    globalThis.QS.packs = { [pack.id]: pack };
+  });
+  test.afterAll(() => {
+    globalThis.QS.pack = pack;
+    globalThis.QS.packs = { [pack.id]: pack };
+  });
+
+  function loadReddit() {
+    new Function(readFileSync(new URL('../src/packs/reddit.js', import.meta.url), 'utf8'))();
+    return globalThis.QS.packs.reddit;
+  }
+
+  test('knownPacks() returns every loaded pack once a second one is loaded', () => {
+    expect(Object.keys(globalThis.QS.packs)).toEqual([pack.id]); // just youtube, per beforeEach
+    loadReddit();
+    const known = QS.storage.knownPacks();
+    expect(known.map((p) => p.id).sort()).toEqual(['reddit', 'youtube']);
+  });
+
+  test('load() seeds a site for every known pack, not just the last-loaded one', async () => {
+    loadReddit();
+    globalThis.chrome.storage.sync.get = async () => ({});
+    const cfg = await QS.storage.load();
+    expect(Object.keys(cfg.sites).sort()).toEqual(['reddit', 'youtube']);
+    expect(cfg.sites.youtube).toEqual(QS.storage.siteDefaults(globalThis.QS.packs.youtube));
+    expect(cfg.sites.reddit).toEqual(QS.storage.siteDefaults(globalThis.QS.packs.reddit));
+  });
+
+  test('resolve()/activeMode() accept an explicit pack, for a page with several loaded', () => {
+    const redditPack = loadReddit();
+    const cfg = base();
+    cfg.sites.reddit = { mode: 'deep_focus', custom: {}, overrides: {}, quick: [] };
+    expect(QS.storage.activeMode(cfg, Date.now(), redditPack)).toBe('deep_focus');
+    const { flags } = QS.storage.resolve(cfg, Date.now(), redditPack);
+    expect(flags.right_sidebar, 'reddit deep_focus should hide the right sidebar').toBe(true);
+    expect(typeof flags.promoted_posts, 'these must be reddit\'s flags, not youtube\'s').toBe('boolean');
+    expect(flags.home_feed, 'a youtube-only feature id should not appear in reddit\'s flags').toBeUndefined();
   });
 });

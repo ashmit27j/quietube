@@ -5,7 +5,7 @@
   "description": "Hide the feed, sidebar, Shorts and comments on YouTube. 40+ toggles, switchable modes, zero paywall, zero accounts, zero tracking.",
   "minimum_chrome_version": "105",
 
-  "permissions": ["storage", "scripting"],
+  "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": [],
   "optional_host_permissions": ["*://*.youtube.com/*", "*://*.reddit.com/*"],
 
@@ -39,7 +39,7 @@
   "commands": {
     "cycle-mode": {
       "suggested_key": { "default": "Alt+Shift+Q" },
-      "description": "Cycle Quiet mode (Off → Casual → Music → Study)"
+      "description": "Cycle Quiet mode (Off → Light → Music → Deep Focus)"
     },
     "peek": {
       "suggested_key": { "default": "Alt+Shift+P" },

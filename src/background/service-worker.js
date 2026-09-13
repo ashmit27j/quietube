@@ -19,7 +19,7 @@
 importScripts('pack-scripts.js');
 
 const SITE_ID = 'youtube';
-const MODE_CYCLE = ['off', 'casual', 'music', 'study'];
+const MODE_CYCLE = ['off', 'light', 'music', 'deep_focus'];
 const PEEK_MS = 30_000;
 
 const area = () => chrome.storage.sync || chrome.storage.local;
@@ -66,10 +66,14 @@ chrome.permissions.onRemoved.addListener(() => {
 
 chrome.commands.onCommand.addListener(async (command) => {
   const cur = await area().get(['sites', 'peekUntil']);
-  const site = cur.sites?.[SITE_ID] || { mode: 'casual', custom: {}, overrides: {}, quick: [] };
+  const site = cur.sites?.[SITE_ID] || { mode: 'light', custom: {}, overrides: {}, quick: [] };
+  // Same rename as packs/youtube.js's modeAliases (D17) — duplicated here for
+  // the same reason SITE_ID/MODE_CYCLE are: this file cannot load the pack.
+  const LEGACY_MODE = { casual: 'light', study: 'deep_focus' };
+  const mode = LEGACY_MODE[site.mode] || site.mode;
 
   if (command === 'cycle-mode') {
-    const i = MODE_CYCLE.indexOf(site.mode || 'casual');
+    const i = MODE_CYCLE.indexOf(mode || 'light');
     const next = MODE_CYCLE[(i + 1) % MODE_CYCLE.length];
     await area().set({
       sites: { ...cur.sites, [SITE_ID]: { ...site, mode: next } },

@@ -117,5 +117,9 @@
     // that fallback path.
   };
 
-  globalThis.QS = Object.assign(globalThis.QS || {}, { pack });
+  // See packs/youtube.js's export for why both `pack` and `packs` are set.
+  globalThis.QS = Object.assign(globalThis.QS || {}, {
+    pack,
+    packs: { ...(globalThis.QS && globalThis.QS.packs), [pack.id]: pack },
+  });
 })();

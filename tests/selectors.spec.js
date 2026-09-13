@@ -116,7 +116,7 @@ test('registry is internally consistent', () => {
     expect(['low', 'med', 'high']).toContain(f.risk);
     expect(['live', 'unverified', 'needs-account']).toContain(f.verified);
     expect(f.modes, `${f.id} missing mode defaults`).toBeTruthy();
-    for (const m of ['study', 'music', 'casual']) {
+    for (const m of ['light', 'music', 'deep_focus']) {
       expect(typeof f.modes[m], `${f.id}.modes.${m} must be a boolean`).toBe('boolean');
     }
     if (f.kind === 'js' || f.kind === 'both') {

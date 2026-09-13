@@ -26,9 +26,12 @@
  *                'off' and 'custom' are core concepts every pack gets for
  *                free and must not be redeclared here.
  *
- *   Two optional extension hooks beyond the required shape:
+ *   Three optional extension hooks beyond the required shape:
  *     customBaseMode: which of this pack's own modes 'custom' starts from
  *                     when the user has no per-feature custom set yet.
+ *     modeAliases:    { [oldModeName]: newModeName } — lets a pack rename one
+ *                     of its own modes without breaking configs saved under
+ *                     the old name. core/storage.js remaps transparently.
  *     navEvents:      custom DOM event names this site's own SPA router
  *                     fires on navigation, for an instant reaction. Purely an
  *                     optimisation — core/main.js's href-poll always catches
@@ -96,42 +99,42 @@
       label: 'Homepage video grid',
       desc: 'Replaces the recommendation wall with an empty, calm page.',
       sel: ['ytd-browse[page-subtype="home"] ytd-rich-grid-renderer'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'home_chips', group: 'home', pages: 'home', kind: 'css', risk: 'low', since: 1, verified: 'unverified',
       label: 'Topic filter chips',
       desc: 'The "All / Music / Gaming / Live" bar above the grid.',
       sel: ['ytd-browse[page-subtype="home"] #chips-wrapper', 'ytd-feed-filter-chip-bar-renderer'],
-      modes: { study: true, music: false, casual: true },
+      modes: { light: true, music: false, deep_focus: true },
     },
     {
       id: 'home_placeholder', group: 'home', pages: 'home', kind: 'js', risk: 'low', since: 1, verified: 'live',
       label: 'Show a calm placeholder',
       desc: 'Puts a search box and your own message where the feed was, instead of blank space.',
       handler: 'homePlaceholder',
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       id: 'subs_feed', group: 'home', pages: 'subs', kind: 'css', risk: 'low', since: 1, verified: 'needs-account',
       label: 'Subscriptions feed',
-      desc: 'Hides the subscriptions grid too. Most people want this ON for study, OFF otherwise.',
+      desc: 'Hides the subscriptions grid too. Most people want this ON for Deep Focus, OFF otherwise.',
       sel: ['ytd-browse[page-subtype="subscriptions"] ytd-rich-grid-renderer'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'redirect_home_to_subs', group: 'home', pages: 'home', kind: 'js', risk: 'low', since: 1, verified: 'live',
       label: 'Redirect home → subscriptions',
       desc: 'Opening youtube.com lands on your subscriptions instead of the algorithm.',
       handler: 'redirectHomeToSubs',
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'home_ads', group: 'home', pages: 'all', kind: 'css', risk: 'med', since: 1, verified: 'unverified',
       label: 'Promoted / masthead units',
       desc: 'In-feed promoted videos and the top banner slot.',
       sel: ['ytd-rich-section-renderer:has(ytd-statement-banner-renderer)', 'ytd-display-ad-renderer', 'ytd-ad-slot-renderer', 'ytd-in-feed-ad-layout-renderer'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
 
     // ───────────────────────── RECOMMENDATIONS ─────────────────────────
@@ -140,49 +143,49 @@
       label: 'Watch-page sidebar',
       desc: 'The "up next" column. The single highest-value toggle in the extension.',
       sel: ['#secondary.ytd-watch-flexy', '#related'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'watch_sidebar_widen', group: 'recs', pages: 'watch', kind: 'css', risk: 'med', since: 1, style: true, verified: 'live',
       label: 'Widen player into the gap',
       desc: 'Without this, hiding the sidebar leaves an ugly empty column.',
       sel: [], // implemented as a layout rule in buildExtraCss below
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'endscreen', group: 'recs', pages: 'watch', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: 'End-of-video wall',
       desc: 'The grid of thumbnails that covers the video the second it ends.',
       sel: ['.ytp-endscreen-content', '.html5-endscreen', '.ytp-ce-video', '.ytp-ce-playlist'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'info_cards', group: 'recs', pages: 'watch', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: 'In-video cards & annotations',
       desc: 'The little "i" teaser that pops out mid-video.',
       sel: ['.ytp-cards-teaser', '.ytp-ce-element', '.iv-branding', '.annotation'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'related_to_search', group: 'recs', pages: 'search', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: '"People also search for"',
       desc: 'The lateral-drift shelves injected into search results.',
       sel: ['ytd-horizontal-card-list-renderer', 'ytd-shelf-renderer:has(#title-text)'],
-      modes: { study: true, music: false, casual: true },
+      modes: { light: true, music: false, deep_focus: true },
     },
     {
       id: 'mixes', group: 'recs', pages: 'all', kind: 'css', risk: 'med', since: 1, verified: 'unverified',
       label: 'Auto-generated mixes',
       desc: 'Endless algorithmic "Mix — YouTube" playlists. Keep OFF in Music mode.',
       sel: ['ytd-radio-renderer', 'ytd-compact-radio-renderer'],
-      modes: { study: true, music: false, casual: true },
+      modes: { light: true, music: false, deep_focus: true },
     },
     {
       id: 'playlists_sitewide', group: 'recs', pages: 'all', kind: 'css', risk: 'low', since: 1, verified: 'live',
       label: 'All playlists sitewide',
       desc: 'DF Tube parity option. Aggressive — most people leave this off.',
       sel: ['ytd-playlist-renderer', 'ytd-compact-playlist-renderer', 'ytd-playlist-panel-renderer'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
 
     // ───────────────────────── SHORTS ─────────────────────────
@@ -191,21 +194,21 @@
       label: 'Redirect Shorts → normal player',
       desc: 'youtube.com/shorts/ID becomes youtube.com/watch?v=ID. Kills the swipe feed dead while still letting links you were sent actually open.',
       handler: 'shortsRedirect',
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'shorts_shelf', group: 'shorts', pages: 'all', kind: 'css', risk: 'low', since: 1, verified: 'unverified',
       label: 'Shorts shelves',
       desc: 'The horizontal Shorts rows wherever they appear.',
       sel: ['ytd-rich-shelf-renderer[is-shorts]', 'ytd-reel-shelf-renderer', 'ytm-shorts-lockup-view-model'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'shorts_nav', group: 'shorts', pages: 'all', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: 'Shorts link in the left rail',
       desc: 'Removes the entry point from the guide and the mini-guide.',
       sel: ['ytd-guide-entry-renderer:has(a[title="Shorts"])', 'ytd-mini-guide-entry-renderer[aria-label="Shorts"]'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'shorts_search', group: 'shorts', pages: 'search', kind: 'css', risk: 'low', since: 1, verified: 'live',
@@ -215,21 +218,21 @@
       // view-model (a named custom element, tier 1), not as a ytd-video-renderer
       // with a /shorts/ href — verified live.
       sel: ['ytm-shorts-lockup-view-model', 'ytd-reel-shelf-renderer', 'ytd-video-renderer:has(a[href^="/shorts/"])'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'shorts_channel_tab', group: 'shorts', pages: 'channel', kind: 'css', risk: 'high', since: 1, verified: 'live',
       label: 'Shorts tab on channels',
       desc: 'Hides the Shorts tab from channel pages.',
       sel: ['yt-tab-shape[tab-title="Shorts"]', 'tp-yt-paper-tab:has(a[href$="/shorts"])'],
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       id: 'shorts_subs', group: 'shorts', pages: 'subs', kind: 'css', risk: 'med', since: 1, verified: 'needs-account',
       label: 'Shorts in subscriptions',
       desc: 'Keeps the subs feed to long-form only.',
       sel: ['ytd-browse[page-subtype="subscriptions"] ytd-rich-shelf-renderer[is-shorts]'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
 
     // ───────────────────────── COMMENTS & CHAT ─────────────────────────
@@ -238,28 +241,28 @@
       label: 'Collapse comments behind a button',
       desc: 'Better than hiding: you keep access, you just stop falling in. Mutually exclusive with the next toggle.',
       handler: 'collapseComments',
-      modes: { study: true, music: false, casual: true },
+      modes: { light: true, music: false, deep_focus: true },
     },
     {
       id: 'comments_hide', group: 'comments', pages: 'watch', kind: 'css', risk: 'low', since: 1, verified: 'live',
       label: 'Hide comments completely',
       desc: 'No button, no comments.',
       sel: ['ytd-comments#comments', '#comments'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'comment_avatars', group: 'comments', pages: 'watch', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: 'Commenter profile pictures',
       desc: 'Lowers the visual noise if you keep comments on.',
       sel: ['ytd-comment-view-model #author-thumbnail', '#author-thumbnail.ytd-comment-view-model'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'live_chat', group: 'comments', pages: 'watch', kind: 'css', risk: 'low', since: 1, verified: 'unverified',
       label: 'Live chat panel',
       desc: 'Hides chat on live streams and premieres.',
       sel: ['ytd-live-chat-frame#chat', '#chat-container'],
-      modes: { study: true, music: true, casual: false },
+      modes: { light: false, music: true, deep_focus: true },
     },
 
     // ───────────────────────── PLAYER BEHAVIOUR ─────────────────────────
@@ -268,14 +271,14 @@
       label: 'Force autoplay off',
       desc: 'Flips the player toggle and re-flips it whenever YouTube turns it back on.',
       handler: 'forceAutoplayOff',
-      modes: { study: true, music: false, casual: true },
+      modes: { light: true, music: false, deep_focus: true },
     },
     {
       id: 'ambient_off', group: 'player', pages: 'watch', kind: 'js', risk: 'med', since: 1, verified: 'live',
       label: 'Disable ambient mode',
       desc: 'Stops the coloured glow bleeding out of the player.',
       handler: 'disableAmbient',
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       // Feature entry stays with the pack it hides for on the YouTube options
@@ -286,7 +289,7 @@
       label: 'Pause when you switch tabs',
       desc: 'Nobody else has this. Stops the "video kept playing while I worked" trap.',
       handler: 'pauseOnBlur',
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
 
     // ───────────────────────── SOCIAL PRESSURE ─────────────────────────
@@ -299,7 +302,7 @@
       // class no longer exists. #view-count is an id inside a named custom
       // element, so this is now tier 2, not tier 3 — verified live.
       sel: ['ytd-watch-info-text #view-count', 'ytd-watch-metadata #info span.view-count', '#info-container .view-count'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'like_counts', group: 'social', pages: 'watch', kind: 'css', risk: 'high', since: 1, verified: 'live',
@@ -308,28 +311,28 @@
       // 2026-09: class renamed from the dashed yt-spec-button-shape-next__*
       // convention to camelCase ytSpecButtonShapeNext* — verified live.
       sel: ['ytd-watch-metadata like-button-view-model .ytSpecButtonShapeNextButtonTextContent', 'ytd-watch-metadata like-button-view-model .yt-spec-button-shape-next__button-text-content'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'merch_shelf', group: 'social', pages: 'watch', kind: 'css', risk: 'low', since: 1, verified: 'unverified',
       label: 'Merch, tickets & offers',
       desc: 'Product shelves under the player.',
       sel: ['ytd-merch-shelf-renderer', 'ytd-ticket-shelf-renderer', '#offer-module'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'description', group: 'social', pages: 'watch', kind: 'css', risk: 'low', since: 1, verified: 'live',
       label: 'Video description',
       desc: 'Link farms and sponsor blocks.',
       sel: ['ytd-watch-metadata #description-inner', '#description.ytd-watch-metadata'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'subscribe_button', group: 'social', pages: 'watch', kind: 'css', risk: 'med', since: 1, verified: 'live',
       label: 'Subscribe / Join buttons',
       desc: 'Removes the conversion prompts.',
       sel: ['ytd-watch-metadata #subscribe-button', 'ytd-watch-metadata #sponsor-button'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
 
     // ───────────────────────── NAVIGATION & CHROME ─────────────────────────
@@ -338,7 +341,7 @@
       label: 'Left sidebar',
       desc: 'The whole navigation rail, including Explore and Trending.',
       sel: ['ytd-app #guide', 'tp-yt-app-drawer#guide'],
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       id: 'explore_trending', group: 'nav', pages: 'all', kind: 'js', risk: 'med', since: 1, verified: 'unverified',
@@ -348,14 +351,14 @@
       // turned "Explore" into a heading with no id, class or attribute — only
       // its text distinguishes it, so this can no longer be a CSS selector.
       handler: 'exploreTrending',
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'notification_bell', group: 'nav', pages: 'all', kind: 'css', risk: 'med', since: 1, verified: 'needs-account',
       label: 'Notification bell',
       desc: 'Removes the red-dot pull.',
       sel: ['ytd-notification-topbar-button-renderer'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
     {
       id: 'search_suggestions', group: 'nav', pages: 'all', kind: 'css', risk: 'high', since: 1, verified: 'live',
@@ -365,14 +368,14 @@
       // ytSuggestionComponent*); ytd-searchbox no longer exists at all —
       // verified live by typing into the search box.
       sel: ['.ytSearchboxComponentSuggestionsContainer', '.ytSuggestionComponentSuggestionsContainer', 'ytd-searchbox #suggestions'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'voice_search', group: 'nav', pages: 'all', kind: 'css', risk: 'low', since: 1, verified: 'live',
       label: 'Voice search button',
       desc: 'Minor, but it is one less thing.',
       sel: ['#voice-search-button'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
 
     // ───────────────────────── SEARCH RESULTS ─────────────────────────
@@ -381,14 +384,14 @@
       label: '"For you" shelves in search',
       desc: 'Injected recommendation rows between real results.',
       sel: ['ytd-shelf-renderer', 'ytd-universal-watch-card-renderer'],
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       id: 'search_ads', group: 'search', pages: 'search', kind: 'css', risk: 'med', since: 1, verified: 'unverified',
       label: 'Promoted search results',
       desc: 'Ad slots at the top of results.',
       sel: ['ytd-search-pyv-renderer', 'ytd-promoted-sparkles-text-search-renderer'],
-      modes: { study: true, music: true, casual: true },
+      modes: { light: true, music: true, deep_focus: true },
     },
 
     // ───────────────────────── VISUAL CALM ─────────────────────────
@@ -402,7 +405,7 @@
       // results still use the old element, so both are "real" depending on
       // rollout — added alongside rather than replacing (D14's A/B-rollout rule).
       sel: ['ytd-thumbnail img', 'yt-thumbnail-view-model img', 'yt-image img'],
-      modes: { study: true, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: true },
     },
     {
       id: 'hide_thumbs', group: 'visual', pages: 'all', kind: 'css', risk: 'low', since: 1, verified: 'live',
@@ -410,14 +413,14 @@
       desc: 'Hides every thumbnail. Titles only, everywhere.',
       // 2026-09: see grayscale_thumbs — same view-model migration on channel grids.
       sel: ['ytd-thumbnail', 'yt-thumbnail-view-model', 'ytd-playlist-thumbnail'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
     {
       id: 'dim_ui', group: 'visual', pages: 'all', kind: 'css', risk: 'low', since: 1, style: true, verified: 'live',
       label: 'Reduce contrast of chrome',
       desc: 'Fades non-content UI so the video is the brightest thing on screen.',
       sel: ['#masthead-container'],
-      modes: { study: false, music: false, casual: false },
+      modes: { light: false, music: false, deep_focus: false },
     },
   ];
 
@@ -562,9 +565,14 @@
   };
 
   const modes = {
-    casual: { label: 'Casual', blurb: 'Kills the worst of it. Recommendations gone, comments collapsed.' },
-    music:  { label: 'Music',  blurb: 'Playlists, mixes and related tracks stay. Visual noise goes.' },
-    study:  { label: 'Study',  blurb: 'Search-and-watch only. Everything else is gone.' },
+    // 'light' and 'deep_focus' are the sitewide generic mode names (see
+    // packs/reddit.js and docs/DECISIONS.md D15/D17) — renamed from this
+    // pack's original 'casual'/'study'. 'music' has no generic equivalent
+    // and stays a YouTube-only extra; a pack declares whichever modes it
+    // supports, it isn't forced to invent a fourth to match this one.
+    light:      { label: 'Light', blurb: 'Kills the worst of it. Recommendations gone, comments collapsed.' },
+    music:      { label: 'Music', blurb: 'Playlists, mixes and related tracks stay. Visual noise goes.' },
+    deep_focus: { label: 'Deep Focus', blurb: 'Search-and-watch only. Everything else is gone.' },
   };
 
   /**
@@ -600,10 +608,19 @@
     features,
     handlers: H,
     modes,
-    customBaseMode: 'casual',
+    customBaseMode: 'light',
+    // Old stored mode names, remapped transparently by core/storage.js so a
+    // config saved before the light/deep_focus rename still resolves.
+    modeAliases: { casual: 'light', study: 'deep_focus' },
     navEvents: ['yt-navigate-finish'], // YouTube's own SPA router signal
     buildExtraCss,
   };
 
-  globalThis.QS = Object.assign(globalThis.QS || {}, { pack });
+  // `pack` is "the active one" (what a content script's core/ files read);
+  // `packs` accumulates every pack loaded into this context, for pages like
+  // the popup/options that load more than one — see docs/ARCHITECTURE.md.
+  globalThis.QS = Object.assign(globalThis.QS || {}, {
+    pack,
+    packs: { ...(globalThis.QS && globalThis.QS.packs), [pack.id]: pack },
+  });
 })();

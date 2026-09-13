@@ -45,14 +45,25 @@ not already taken on the store before first submission.
 
 This is where most extensions get stuck. Our answers:
 
-- **Single purpose**: "Hide user-selected parts of the YouTube web interface so
-  the user can watch without recommendations, Shorts, comments and other
-  distractions."
+- **Single purpose**: "Hide user-selected distracting parts of supported
+  sites' web interfaces (currently YouTube and Reddit), per site and per user
+  preference."
 - **Permission justification — `storage`**: "Stores the user's own toggle
-  settings and selected mode. No other data is stored."
-- **Permission justification — host permission `*://*.youtube.com/*`**: "The
-  extension modifies only the appearance of youtube.com pages. It needs to run
-  a content script there to apply the user's hiding preferences."
+  settings and selected mode, per site. No other data is stored."
+- **Permission justification — `scripting`**: "Lets a site's hiding rules
+  start applying immediately after the user grants that site, instead of
+  waiting for a tab reload or browser restart. Only used for sites the user
+  has already approved."
+- **Permission justification — `activeTab`**: "Lets the popup show the
+  right view (mode picker vs. an unsupported-site message) for whichever tab
+  the user has open when they click the extension icon. Silent — no
+  install-time prompt — active only for that tab, only while the popup is open."
+- **Permission justification — each optional host permission**: "Requested
+  only when the user turns on that site's pack. The extension modifies only
+  the appearance of that site's pages." `host_permissions` is empty at
+  install — see `docs/DECISIONS.md` D16 and keep `store/LISTING.md`'s
+  "Permission justifications" table in sync with whatever
+  `optional_host_permissions` currently lists.
 - **Remote code**: No.
 - **Data collection**: declare **none** in every category. This is true — there
   is no network call in the codebase. Verify before submitting:
@@ -72,7 +83,7 @@ Required:
 - small promo tile 440×280 (optional but improves placement)
 
 Screenshot plan (in order — the first one is what people actually see):
-1. Side-by-side: normal YouTube home vs Quiet study mode.
+1. Side-by-side: normal YouTube home vs Quiet Deep Focus mode.
 2. The mode switcher popup.
 3. The options page showing the breadth of toggles.
 4. Watch page with the sidebar gone and the player widened.
@@ -97,7 +108,7 @@ for this category and how we avoid them:
 
 | Rejection | Avoidance |
 |---|---|
-| Permissions broader than the single purpose | only `storage` + one host pattern (D5) |
+| Permissions broader than the single purpose | `storage` + `scripting` + `activeTab` (the last two are unprompted/silent), zero host permissions at install, one optional host pattern per pack requested on first use (D16) |
 | Misleading name / trademark | see naming rules above |
 | Minified or obfuscated code | we ship readable source (D1) |
 | Privacy disclosures inconsistent with code | verified by the `grep` above |

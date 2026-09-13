@@ -58,6 +58,18 @@
     return out;
   }
 
+  /**
+   * Every pack loaded into this context. Content scripts only ever load one
+   * pack, so `QS.packs` there holds exactly that one; popup/options pages
+   * load every pack they know about (there's no way around this being a
+   * static list per page — see docs/ARCHITECTURE.md "Adding a pack"), so
+   * `QS.packs` there is the whole set. Either way this file never special-
+   * cases which context it's in.
+   */
+  function knownPacks() {
+    return globalThis.QS.packs ? Object.values(globalThis.QS.packs) : [globalThis.QS.pack];
+  }
+
   async function load() {
     const raw = (await area().get(null)) || {};
     // structuredClone, not a shallow Object.assign({}, DEFAULTS, raw): DEFAULTS'
@@ -72,9 +84,10 @@
     cfg.schema = raw.schema;
     const migrated = migrate(cfg);
 
-    const pack = globalThis.QS.pack;
     migrated.sites = migrated.sites || {};
-    if (!migrated.sites[pack.id]) migrated.sites[pack.id] = siteDefaults(pack);
+    for (const pack of knownPacks()) {
+      if (!migrated.sites[pack.id]) migrated.sites[pack.id] = siteDefaults(pack);
+    }
     return migrated;
   }
 
@@ -86,7 +99,11 @@
    */
   function migrate(cfg) {
     if (!cfg.schema || cfg.schema < 2) {
-      const pack = globalThis.QS.pack;
+      // Schema 1 predates multi-site entirely — there is only ever one site's
+      // worth of legacy data, and it belongs to whichever pack was original,
+      // which by convention is always the first one listed on any page that
+      // loads more than one pack — see docs/ARCHITECTURE.md "Adding a pack".
+      const pack = knownPacks()[0];
       cfg.sites = cfg.sites || {};
       if (!cfg.sites[pack.id]) {
         cfg.sites[pack.id] = {
@@ -120,14 +137,18 @@
    * `custom` starts from the active pack's declared `customBaseMode` (the
    * pack's own baseline, not a name this file knows) rather than "off", so
    * flipping one switch from a preset doesn't blank out everything else.
+   *
+   * `pack` defaults to `globalThis.QS.pack` — the only pack in a content
+   * script's context — so every existing call site stays untouched. A page
+   * that has more than one pack loaded (the popup, the options page) passes
+   * the specific pack it wants resolved explicitly.
    */
-  function resolve(cfg, now = Date.now()) {
-    const pack = globalThis.QS.pack;
+  function resolve(cfg, now = Date.now(), pack = globalThis.QS.pack) {
     if (cfg.masterEnabled === false) {
       return { mode: 'off', flags: defaultsFor(pack, 'off') };
     }
 
-    const mode = activeMode(cfg, now);
+    const mode = activeMode(cfg, now, pack);
     const site = cfg.sites?.[pack.id] || siteDefaults(pack);
     let flags =
       mode === 'custom'
@@ -140,12 +161,18 @@
     return { mode, flags };
   }
 
-  /** Scheduled modes beat the manual mode while a rule window is open. */
-  function activeMode(cfg, now = Date.now()) {
-    const pack = globalThis.QS.pack;
+  /**
+   * Scheduled modes beat the manual mode while a rule window is open.
+   * `pack` defaults the same way `resolve()`'s does — see its doc comment.
+   */
+  function activeMode(cfg, now = Date.now(), pack = globalThis.QS.pack) {
     const site = cfg.sites?.[pack.id] || siteDefaults(pack);
+    // A pack can rename one of its own modes (pack.modeAliases) without
+    // breaking a config saved under the old name — remap transparently
+    // rather than making every reader of a stored mode string know about it.
+    const alias = (m) => (pack.modeAliases && pack.modeAliases[m]) || m;
     const s = cfg.schedule;
-    if (!s || !s.enabled || !Array.isArray(s.rules)) return site.mode;
+    if (!s || !s.enabled || !Array.isArray(s.rules)) return alias(site.mode);
     const d = new Date(now);
     const day = d.getDay();
     const mins = d.getHours() * 60 + d.getMinutes();
@@ -156,12 +183,15 @@
       const from = fh * 60 + fm;
       const to = th * 60 + tm;
       const inWindow = from <= to ? mins >= from && mins < to : mins >= from || mins < to;
-      if (inWindow) return r.mode;
+      if (inWindow) return alias(r.mode);
     }
-    return site.mode;
+    return alias(site.mode);
   }
 
   globalThis.QS = Object.assign(globalThis.QS || {}, {
-    storage: { SCHEMA, DEFAULTS, OFF_META, CUSTOM_META, siteDefaults, load, save, resolve, activeMode, defaultsFor },
+    storage: {
+      SCHEMA, DEFAULTS, OFF_META, CUSTOM_META,
+      siteDefaults, knownPacks, load, save, resolve, activeMode, defaultsFor,
+    },
   });
 })();

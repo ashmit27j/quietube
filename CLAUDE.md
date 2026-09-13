@@ -129,7 +129,7 @@ npm run test:live   # selectors against real YouTube — needs network
 ## What "done" means for a feature
 
 - [ ] registry entry with `sel` ordered most-stable-first and a `risk` rating
-- [ ] sensible default in all three modes (`study` / `music` / `casual`)
+- [ ] sensible default in all three modes (`light` / `music` / `deep_focus`)
 - [ ] verified on a real page at all three widths (mobile-ish 800px, 1280, 1920)
 - [ ] verified it does NOT fire on the other page types (`data-qs-page` scoping)
 - [ ] a case in `tests/selectors.spec.js`

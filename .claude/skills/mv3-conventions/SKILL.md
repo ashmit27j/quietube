@@ -67,9 +67,9 @@ It is terminated after ~30s idle and restarted on demand. Therefore:
   sync, and `chrome.storage.sync` is then `undefined`, not merely empty.
 
 ## Permissions
-`storage` + `scripting`, with `host_permissions: []` — every pack's host
-lives in `optional_host_permissions` and is requested on first use (D16).
-Specifically:
+`storage` + `scripting` + `activeTab`, with `host_permissions: []` — every
+pack's host lives in `optional_host_permissions` and is requested on first
+use (D16). Specifically:
 - Redirects are done with `location.replace` in the content script, **not**
   `chrome.tabs.update` — no `tabs` permission needed.
 - The options page is opened with `chrome.runtime.openOptionsPage()` — no
@@ -79,6 +79,11 @@ Specifically:
   .registerContentScripts()` once its host permission is granted (see
   `background/pack-scripts.js`), which is what costs `scripting`. A static
   entry doesn't retroactively fire once a permission is granted mid-session.
+- With `host_permissions` empty, `chrome.tabs.query()` hides `url`/`title`
+  for tabs the extension has no host permission for — including from the
+  popup, which needs the URL just to decide which pack (if any) applies.
+  `activeTab` is what reveals it: a silent permission that activates only
+  when the user invokes the extension directly (opening the popup counts).
 - `chrome.permissions.request()` must be called from a user gesture in a
   foreground page (popup or options), never from the service worker, and its
   approval UI is a native browser surface no automated test can click

@@ -13,7 +13,7 @@
 
 * { box-sizing: border-box; }
 body {
-  width: 268px;
+  width: 280px;
   margin: 0;
   padding: 14px;
   background: var(--bg);
@@ -21,8 +21,22 @@ body {
   font: 400 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.site-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+
+/* master kill switch */
+.master { position: relative; display: inline-flex; flex: 0 0 auto; width: 34px; height: 20px; cursor: pointer; }
+.master input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.master .switch {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: var(--line); transition: background .15s;
+}
+.master .switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--bg); transition: transform .15s;
+}
+.master input:checked + .switch { background: var(--accent); }
+.master input:checked + .switch::after { transform: translateX(14px); }
 
 #open-options {
   border: none; background: none; padding: 0;
@@ -44,14 +58,38 @@ h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .modes button:hover { border-color: var(--muted); }
 .modes button[aria-checked="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 
-.blurb { margin: 10px 2px 14px; min-height: 2.8em; color: var(--muted); font-size: 12px; }
+.blurb { margin: 10px 2px 12px; min-height: 2.8em; color: var(--muted); font-size: 12px; }
+
+/* quick toggles */
+.quick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.quick .row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; }
+.quick .row label { flex: 1; cursor: pointer; }
+.quick input[type="checkbox"] { flex: 0 0 auto; width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+.quick .empty { color: var(--muted); font-size: 12px; padding: 2px; }
+.quick .empty a { color: inherit; }
+
+#unsupported-view { padding: 8px 2px 4px; }
+#unsupported-view .muted { color: var(--muted); margin: 0 0 10px; }
+
+.linkbtn {
+  display: inline-block; border: none; background: none; padding: 0;
+  color: var(--fg); font: inherit; font-weight: 500; cursor: pointer;
+  text-decoration: none;
+}
+.linkbtn:hover { text-decoration: underline; }
+
+footer {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+}
 
 .peek {
-  width: 100%; padding: 9px;
+  flex: 1; padding: 9px;
   border: 1px solid var(--line); border-radius: 8px;
   background: transparent; color: var(--fg); font: inherit; cursor: pointer;
 }
 .peek:hover { border-color: var(--muted); }
 .peek[data-active="1"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.peek:disabled { opacity: .4; cursor: default; }
 
 .hint { margin: 10px 0 0; color: var(--muted); font-size: 11px; text-align: center; }

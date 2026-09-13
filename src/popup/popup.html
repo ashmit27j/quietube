@@ -6,18 +6,33 @@
 </head>
 <body>
   <header>
-    <h1>Quiet</h1>
-    <button id="open-options" title="All settings">Settings</button>
+    <label class="master" id="master-label" title="Turn QuietSurf off everywhere">
+      <input type="checkbox" id="master-toggle">
+      <span class="switch"></span>
+    </label>
+    <span id="site-name" class="site-name"></span>
   </header>
 
-  <div id="modes" class="modes" role="radiogroup" aria-label="Mode"></div>
-  <p id="blurb" class="blurb"></p>
+  <div id="site-view">
+    <div id="modes" class="modes" role="radiogroup" aria-label="Mode"></div>
+    <p id="blurb" class="blurb"></p>
+    <div id="quick" class="quick"></div>
+  </div>
 
-  <button id="peek" class="peek">Peek for 30s</button>
-  <p class="hint">Alt+Shift+Q cycles modes · Alt+Shift+P peeks</p>
+  <div id="unsupported-view" hidden>
+    <p class="muted">No pack for this site yet.</p>
+    <a id="request-pack" class="linkbtn" target="_blank" rel="noopener noreferrer">Request a pack on GitHub →</a>
+  </div>
 
+  <footer>
+    <button id="peek" class="peek">Peek for 30s</button>
+    <button id="open-options" class="linkbtn">All settings →</button>
+  </footer>
+
+  <script src="../background/pack-scripts.js"></script>
   <script src="../core/storage.js"></script>
   <script src="../packs/youtube.js"></script>
+  <script src="../packs/reddit.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -307,3 +307,33 @@ kind of fragile, version-coupled machinery this project avoids elsewhere.
 See `tests/permissions.spec.js` (stubbed logic) and `tests/extension.spec.js`
 (the same logic against the real API, plus the "nothing injects without a
 grant" guarantee) for what's covered instead.
+
+**Addendum (step 6, popup progressive disclosure): added `activeTab`.**
+Building the popup surfaced a gap this decision didn't anticipate: with
+`host_permissions` empty, `chrome.tabs.query({active:true,currentWindow:true})`
+returns the current tab **without its `url`** — Chrome hides `url`/`title`
+for any tab the extension doesn't already hold host permission for. The
+popup needs that URL for something more basic than injecting anything: just
+to know which pack (if any) applies, so it can decide whether to show the
+mode picker or the "no pack for this site" fallback — a chicken-and-egg
+problem, since deciding whether to *request* a host permission requires
+already knowing the URL that permission would cover.
+
+`activeTab` is Chrome's purpose-built answer: a silent, no-prompt permission
+that reveals the current tab's URL/content only when the user directly
+invokes the extension (opening the popup counts), for that tab, for that
+one interaction. Added to `permissions` alongside `storage` and `scripting`.
+
+**Verified by hand, not by an automated test — same category of gap as the
+grant flow above, for the same reason.** `activeTab` only activates on a
+genuine action-icon invocation; opening `popup.html` as a plain Playwright
+tab (the only way to load it at all in this environment) doesn't count as
+that invocation, so `tab.url` came back empty in every attempt regardless of
+`activeTab` being declared. Confirmed this is a test-harness ceiling, not a
+design bug, by checking Chrome's own documented semantics for `activeTab`
+match exactly this popup pattern, and it's a standard, widely-used one. What
+IS verified live: the popup and options page render correctly, mode
+switching and quick-toggle stars work end-to-end (screenshotted), and the
+"no pack matched" fallback path renders correctly and doesn't crash when
+`tab.url` is unavailable — which is the actual state this environment can
+produce, so at least that fallback path is exercised for real.
